@@ -5,11 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1E2229">
 <title>Escala Certa</title>
+
+<!-- IA (Teachable Machine). Só são usadas quando a câmera reconhece; precisam de internet. -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
 <style>
   :root{
     --bg:#141619; --panel:#1E2229; --panelHi:#262B33; --line:#333A44;
     --ink:#E8EAED; --mut:#8A929E; --yellow:#F5C518; --red:#E5443B;
-    --blue:#4FB0E0; --lcd:#B9C7A6; --lcdBg:#2A3128;
+    --blue:#4FB0E0; --lcd:#B9C7A6; --lcdBg:#2A3128; --green:#4FBF7B;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; padding:0; background:var(--bg);}
@@ -36,23 +41,24 @@
   svg{display:block;}
   .h1{font-size:18px; font-weight:700;}
   .lead{color:var(--mut); font-size:12.5px; margin-top:2px; line-height:1.5;}
-  /* grade de alvos */
   .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; cursor:pointer;
         color:var(--ink); text-align:left;}
   .alvo{padding:16px 12px; display:flex; flex-direction:column; gap:8px;}
   .alvo .nm{font-size:13.5px; font-weight:600;}
-  /* câmera */
   .cam{border-radius:16px; overflow:hidden; border:1px solid var(--line); background:#0C0E10; margin-bottom:16px;}
-  .viewport{height:150px; position:relative; display:flex; align-items:center; justify-content:center;
-            background:repeating-linear-gradient(135deg,#0C0E10 0 12px,#111417 12px 24px);}
-  .corner{position:absolute; width:26px; height:26px; border-color:var(--yellow); border-style:solid;}
-  .shoot{width:100%; padding:12px; background:var(--yellow); border:none; color:#141619;
+  .viewport{height:220px; position:relative; display:flex; align-items:center; justify-content:center;
+            background:repeating-linear-gradient(135deg,#0C0E10 0 12px,#111417 12px 24px); overflow:hidden;}
+  #cam{width:100%; height:100%; object-fit:cover;}
+  .capimg{width:100%; height:100%; object-fit:cover;}
+  .corner{position:absolute; width:26px; height:26px; border-color:var(--yellow); border-style:solid; z-index:2;}
+  .shoot{width:100%; padding:14px; background:var(--yellow); border:none; color:#141619;
          font-weight:800; font-size:14px; cursor:pointer;}
+  .ghost{width:100%; padding:12px; background:var(--panelHi); border:none; color:var(--ink);
+         font-weight:600; font-size:13px; cursor:pointer; border-top:1px solid var(--line);}
   .note{display:flex; align-items:flex-start; gap:8px; color:var(--mut); font-size:12px; line-height:1.5;}
   .back{background:none; border:none; cursor:pointer; color:var(--mut); display:flex; align-items:center;
         gap:6px; padding:0 0 10px; font-size:13px;}
-  /* resultado / escala */
   .res{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px;}
   .rhead{display:flex; align-items:center; gap:12px; margin-bottom:12px;}
   .badge{width:52px; height:52px; border-radius:12px; color:#141619; font-weight:800; font-size:18px;
@@ -70,9 +76,7 @@
   .warn{background:rgba(229,68,59,.12); border:1px solid var(--red); border-radius:10px; padding:10px 12px; margin-top:4px;}
   .warnhead{display:flex; align-items:center; gap:6px; color:var(--red); font-size:12px; font-weight:700;}
   .warntext{font-size:12.5px; line-height:1.5; margin-top:4px;}
-  /* accordion */
   .acc{background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-bottom:10px;}
-  .acc.open{}
   .accbtn{width:100%; padding:14px; background:none; border:none; cursor:pointer; display:flex;
           align-items:center; gap:12px; color:var(--ink);}
   .badgeSm{width:44px; height:44px; border-radius:10px; color:#141619; font-weight:800; font-size:16px;
@@ -83,7 +87,6 @@
   .chev{transition:transform .2s;}
   .chev.r{transform:rotate(90deg);}
   .accbody{padding:0 14px 14px;}
-  /* multimetros */
   .meter{padding:14px; display:flex; align-items:center; gap:14px; width:100%;}
   .mimg{width:46px; height:58px; border-radius:8px; border:1px solid var(--line); flex-shrink:0;
         padding:4px; display:flex; flex-direction:column; gap:3px;}
@@ -98,6 +101,18 @@
   .infobar{display:flex; align-items:flex-start; gap:8px; background:var(--panelHi); border-radius:10px;
            padding:10px 12px; font-size:12.5px; line-height:1.5;}
   .seclabel{color:var(--mut); font-size:11px; letter-spacing:.08em; margin:16px 0 8px;}
+  .guessbox{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:14px;}
+  .guesshead{display:flex; align-items:center; gap:12px; margin-bottom:12px;}
+  .conf{font-size:12px; color:var(--mut);}
+  .rowbtn{display:flex; gap:10px;}
+  .btnY{flex:1; padding:12px; background:var(--yellow); border:none; border-radius:10px; color:#141619;
+        font-weight:800; font-size:13.5px; cursor:pointer;}
+  .btnG{flex:1; padding:12px; background:var(--panelHi); border:1px solid var(--line); border-radius:10px;
+        color:var(--ink); font-weight:600; font-size:13.5px; cursor:pointer;}
+  .pill{display:inline-flex; align-items:center; gap:5px; font-size:10.5px; padding:3px 8px; border-radius:999px;}
+  .spin{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--yellow);
+        border-radius:50%;animation:sp 0.8s linear infinite;}
+  @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -113,10 +128,27 @@
   </header>
   <main id="main"></main>
   <nav id="nav"></nav>
+  <canvas id="capbuf" style="display:none"></canvas>
 </div>
 
 <script>
-/* ============ ícones (SVG inline, funcionam offline) ============ */
+/* ==========================================================================
+   >>> AQUI VOCÊ COLA O LINK DO SEU MODELO DO TEACHABLE MACHINE <<<
+   Deixe entre as aspas, terminando com barra "/". Exemplo:
+   const MODEL_URL = "https://teachablemachine.withgoogle.com/models/aB3xY9/";
+   Enquanto ficar vazio (""), a câmera abre normal mas cai na escolha manual.
+   ========================================================================== */
+const MODEL_URL = "";
+
+/* Os nomes à esquerda TÊM que ser idênticos aos nomes das classes que você
+   criar no Teachable Machine. Não mude os da direita. */
+const CLASSMAP = {
+  "Tomada":"tomada", "Pilha":"pilha", "Fonte":"fonte", "Fio":"fio",
+  "Fusivel":"fusivel", "Resistor":"resistor", "LED":"led", "Lampada":"lampada"
+};
+const LIMIAR = 0.60; // confiança mínima pra sugerir (60%)
+
+/* ============ ícones ============ */
 const P = {
   camera:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
   book:'<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
@@ -131,80 +163,134 @@ const P = {
   alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
   chev:'<path d="m9 18 6-6-6-6"/>',
   arrow:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
-  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'
+  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>'
 };
-function icon(name,size,color){
-  return '<svg width="'+(size||20)+'" height="'+(size||20)+'" viewBox="0 0 24 24" fill="none" stroke="'+(color||'currentColor')+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+P[name]+'</svg>';
-}
+function icon(n,s,c){return '<svg width="'+(s||20)+'" height="'+(s||20)+'" viewBox="0 0 24 24" fill="none" stroke="'+(c||'currentColor')+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+P[n]+'</svg>';}
 
 /* ============ dados ============ */
 const C = {yellow:'#F5C518', red:'#E5443B', blue:'#4FB0E0'};
-
 const ESCALAS = [
-  {id:'vdc', cor:C.blue, sigla:'V⎓', mostra:'V⎓ 20', nome:'Tensão contínua (DC)',
+  {id:'vdc', cor:C.blue, sigla:'V\u23DC', mostra:'V\u23DC 20', nome:'Tens\u00e3o cont\u00ednua (DC)',
    dial:'V com uma linha reta e outra tracejada',
-   pra:'Medir pilhas, baterias, fontes, carregadores e eletrônica de carro (12V).',
-   como:'Pré-selecione um valor ACIMA do esperado. Ponta preta no COM, vermelha no VΩmA. Encoste a vermelha no + e a preta no −.',
-   faixas:'200m · 2 · 20 · 200 · 1000', perigo:false},
-  {id:'vac', cor:C.red, sigla:'V~', mostra:'V~ 750', nome:'Tensão alternada (AC)',
-   dial:'V com o símbolo de onda ~',
-   pra:'Medir tomada, rede elétrica (127V ou 220V) e transformadores.',
+   pra:'Medir pilhas, baterias, fontes, carregadores e eletr\u00f4nica de carro (12V).',
+   como:'Pr\u00e9-selecione um valor ACIMA do esperado. Ponta preta no COM, vermelha no V\u03a9mA. Encoste a vermelha no + e a preta no \u2212.',
+   faixas:'200m \u00b7 2 \u00b7 20 \u00b7 200 \u00b7 1000', perigo:false},
+  {id:'vac', cor:C.red, sigla:'V~', mostra:'V~ 750', nome:'Tens\u00e3o alternada (AC)',
+   dial:'V com o s\u00edmbolo de onda ~',
+   pra:'Medir tomada, rede el\u00e9trica (127V ou 220V) e transformadores.',
    como:'Selecione a faixa acima da rede (use 750/600 para tomada). Sem polaridade: uma ponta em cada furo da tomada.',
-   faixas:'200 · 750', perigo:true},
-  {id:'ohm', cor:C.yellow, sigla:'Ω', mostra:'Ω 20k', nome:'Resistência',
-   dial:'Símbolo Ω (ômega)',
-   pra:'Medir resistores e conferir se um fio/enrolamento está partido.',
+   faixas:'200 \u00b7 750', perigo:true},
+  {id:'ohm', cor:C.yellow, sigla:'\u03a9', mostra:'\u03a9 20k', nome:'Resist\u00eancia',
+   dial:'S\u00edmbolo \u03a9 (\u00f4mega)',
+   pra:'Medir resistores e conferir se um fio/enrolamento est\u00e1 partido.',
    como:'SEMPRE com o circuito DESLIGADO e sem energia. Encoste uma ponta em cada terminal do componente.',
-   faixas:'200 · 2k · 20k · 200k · 2M', perigo:false},
-  {id:'cont', cor:C.yellow, sigla:'•))', mostra:'•)) bip', nome:'Continuidade (bip)',
-   dial:'Ícone de som/ondinha, às vezes junto com o diodo',
-   pra:'Testar fios, fusíveis, chaves e trilhas: se estiver inteiro, apita.',
-   como:'Circuito DESLIGADO. Encoste as duas pontas nas extremidades. Apitou = passagem/inteiro. Silêncio = interrompido.',
-   faixas:'—', perigo:false},
-  {id:'adc', cor:C.blue, sigla:'A⎓', mostra:'A⎓ 200m', nome:'Corrente contínua (DC)',
+   faixas:'200 \u00b7 2k \u00b7 20k \u00b7 200k \u00b7 2M', perigo:false},
+  {id:'cont', cor:C.yellow, sigla:'\u2022))', mostra:'\u2022)) bip', nome:'Continuidade (bip)',
+   dial:'\u00cdcone de som/ondinha, \u00e0s vezes junto com o diodo',
+   pra:'Testar fios, fus\u00edveis, chaves e trilhas: se estiver inteiro, apita.',
+   como:'Circuito DESLIGADO. Encoste as duas pontas nas extremidades. Apitou = passagem/inteiro. Sil\u00eancio = interrompido.',
+   faixas:'\u2014', perigo:false},
+  {id:'adc', cor:C.blue, sigla:'A\u23DC', mostra:'A\u23DC 200m', nome:'Corrente cont\u00ednua (DC)',
    dial:'A com linha reta e tracejada',
    pra:'Medir quanto um circuito consome (em mA ou A).',
-   como:'É medido EM SÉRIE (o multímetro entra no meio do circuito). Acima de 200mA, passe a ponta vermelha para o furo de 10A.',
-   faixas:'200µ · 2m · 20m · 200m · 10A', perigo:false},
-  {id:'diodo', cor:C.blue, sigla:'▶|', mostra:'▶| 0.6', nome:'Teste de diodo',
-   dial:'Símbolo de seta com barra ▶|',
+   como:'\u00c9 medido EM S\u00c9RIE (o mult\u00edmetro entra no meio do circuito). Acima de 200mA, passe a ponta vermelha para o furo de 10A.',
+   faixas:'200\u00b5 \u00b7 2m \u00b7 20m \u00b7 200m \u00b7 10A', perigo:false},
+  {id:'diodo', cor:C.blue, sigla:'\u25B6|', mostra:'\u25B6| 0.6', nome:'Teste de diodo',
+   dial:'S\u00edmbolo de seta com barra \u25B6|',
    pra:'Testar diodos e LEDs e descobrir o sentido certo (anodo/catodo).',
-   como:'Vermelha no anodo, preta no catodo: mostra ~0,6. Invertendo, dá aberto (1 ou OL). O LED até acende fraquinho.',
-   faixas:'—', perigo:false}
+   como:'Vermelha no anodo, preta no catodo: mostra ~0,6. Invertendo, d\u00e1 aberto (1 ou OL). O LED at\u00e9 acende fraquinho.',
+   faixas:'\u2014', perigo:false}
 ];
 const getE = id => ESCALAS.find(e=>e.id===id);
-
 const ALVOS = [
-  {id:'tomada', nome:'Tomada / Rede', ic:'plug', escala:'vac', dica:'127V ou 220V. Tensão de rede é perigosa — muita atenção com as pontas.'},
-  {id:'pilha', nome:'Pilha / Bateria', ic:'battery', escala:'vdc', dica:'AA/AAA ≈ 1,5V · Bateria 9V · Bateria de carro 12V.'},
-  {id:'fonte', nome:'Carregador / Fonte', ic:'zap', escala:'vdc', dica:'Meça a saída (a etiqueta diz, ex.: 5V, 12V). Respeite + e −.'},
-  {id:'fio', nome:'Cabo / Fio', ic:'cable', escala:'cont', dica:'Descubra se está rompido por dentro. Sempre desenergizado.'},
-  {id:'fusivel', nome:'Fusível', ic:'cpu', escala:'cont', dica:'Apitou = bom. Silêncio = queimado, precisa trocar.'},
-  {id:'resistor', nome:'Resistor', ic:'wave', escala:'ohm', dica:'Confira o valor real e se não está aberto/queimado.'},
-  {id:'led', nome:'LED / Diodo', ic:'bulb', escala:'diodo', dica:'Testa se está bom e mostra o lado certo de ligar.'},
-  {id:'lampada', nome:'Lâmpada', ic:'bulb', escala:'cont', dica:'Filamento inteiro apita. Desligada da energia.'}
+  {id:'tomada', nome:'Tomada / Rede', ic:'plug', escala:'vac', dica:'127V ou 220V. Tens\u00e3o de rede \u00e9 perigosa \u2014 muita aten\u00e7\u00e3o com as pontas.'},
+  {id:'pilha', nome:'Pilha / Bateria', ic:'battery', escala:'vdc', dica:'AA/AAA \u2248 1,5V \u00b7 Bateria 9V \u00b7 Bateria de carro 12V.'},
+  {id:'fonte', nome:'Carregador / Fonte', ic:'zap', escala:'vdc', dica:'Me\u00e7a a sa\u00edda (a etiqueta diz, ex.: 5V, 12V). Respeite + e \u2212.'},
+  {id:'fio', nome:'Cabo / Fio', ic:'cable', escala:'cont', dica:'Descubra se est\u00e1 rompido por dentro. Sempre desenergizado.'},
+  {id:'fusivel', nome:'Fus\u00edvel', ic:'cpu', escala:'cont', dica:'Apitou = bom. Sil\u00eancio = queimado, precisa trocar.'},
+  {id:'resistor', nome:'Resistor', ic:'wave', escala:'ohm', dica:'Confira o valor real e se n\u00e3o est\u00e1 aberto/queimado.'},
+  {id:'led', nome:'LED / Diodo', ic:'bulb', escala:'diodo', dica:'Testa se est\u00e1 bom e mostra o lado certo de ligar.'},
+  {id:'lampada', nome:'L\u00e2mpada', ic:'bulb', escala:'cont', dica:'Filamento inteiro apita. Desligada da energia.'}
 ];
-
+const getA = id => ALVOS.find(a=>a.id===id);
 const METERS = [
   {id:'830b', nome:'DT-830B', tipo:'Digital', nota:'O mais barato de todos', cor:C.yellow,
-   tem:['vdc','vac','ohm','adc','diodo'], falta:'Não tem bip de continuidade.'},
+   tem:['vdc','vac','ohm','adc','diodo'], falta:'N\u00e3o tem bip de continuidade.'},
   {id:'830d', nome:'DT-830D / DT-832', tipo:'Digital', nota:'Barato, com bip', cor:C.yellow,
-   tem:['vdc','vac','ohm','cont','adc','diodo'], falta:'Tem todo o básico presente.'},
+   tem:['vdc','vac','ohm','cont','adc','diodo'], falta:'Tem todo o b\u00e1sico presente.'},
   {id:'9205', nome:'DT-9205A', tipo:'Digital', nota:'Mais completo', cor:'#3A3F47',
-   tem:['vdc','vac','ohm','cont','adc','diodo'], falta:'Ainda tem capacitância e teste de transistor (hFE).'},
-  {id:'analog', nome:'Analógico (agulha)', tipo:'Analógico', nota:'Ex.: Minipa ET-1002', cor:'#3A3F47',
-   tem:['vdc','vac','ohm','adc'], falta:'Leitura na agulha; zere o Ω antes de medir.'}
+   tem:['vdc','vac','ohm','cont','adc','diodo'], falta:'Ainda tem capacit\u00e2ncia e teste de transistor (hFE).'},
+  {id:'analog', nome:'Anal\u00f3gico (agulha)', tipo:'Anal\u00f3gico', nota:'Ex.: Minipa ET-1002', cor:'#3A3F47',
+   tem:['vdc','vac','ohm','adc'], falta:'Leitura na agulha; zere o \u03a9 antes de medir.'}
 ];
 
 /* ============ estado ============ */
-let state = {tab:'id', alvo:null, meter:null, escala:null};
+let state = {tab:'id', alvo:null, meter:null, escala:null,
+             camMode:'idle', guess:null, photo:null, msg:null};
+let camStream = null;
+let tmModel = null;
 
-/* ============ componentes (HTML string) ============ */
+/* ============ c\u00e2mera + IA ============ */
+async function openCam(){
+  state.msg = null;
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:{ideal:'environment'} }, audio:false });
+    state.camMode = 'live'; render();
+  }catch(e){
+    state.msg = 'N\u00e3o consegui acessar a c\u00e2mera. Verifique a permiss\u00e3o do navegador \u2014 ou use a lista abaixo.';
+    render();
+  }
+}
+function stopCam(){
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
+}
+async function ensureModel(){
+  if(!MODEL_URL) return null;
+  if(tmModel) return tmModel;
+  tmModel = await tmImage.load(MODEL_URL+"model.json", MODEL_URL+"metadata.json");
+  return tmModel;
+}
+async function shoot(){
+  const video = document.getElementById('cam');
+  const cv = document.getElementById('capbuf');
+  if(!video || !video.videoWidth){ return; }
+  const vw = video.videoWidth, vh = video.videoHeight, side = Math.min(vw,vh);
+  cv.width = 224; cv.height = 224;
+  cv.getContext('2d').drawImage(video, (vw-side)/2, (vh-side)/2, side, side, 0, 0, 224, 224);
+  state.photo = cv.toDataURL('image/jpeg', 0.85);
+
+  if(!MODEL_URL){ stopCam(); state.camMode='nomodel'; state.msg=null; render(); return; }
+
+  state.camMode='analyzing'; render();
+  try{
+    const model = await ensureModel();
+    const preds = await model.predict(cv);
+    preds.sort((a,b)=>b.probability-a.probability);
+    const top = preds[0];
+    const alvoId = CLASSMAP[top.className];
+    stopCam();
+    if(!alvoId || top.probability < LIMIAR){
+      state.camMode='nomodel';
+      state.msg='N\u00e3o consegui identificar com seguran\u00e7a. Escolha na lista:';
+    }else{
+      state.guess = {alvoId, prob: Math.round(top.probability*100)};
+      state.camMode='confirm';
+    }
+    render();
+  }catch(e){
+    stopCam(); state.camMode='nomodel';
+    state.msg='A IA n\u00e3o carregou (precisa de internet). Escolha na lista:';
+    render();
+  }
+}
+
+/* ============ componentes ============ */
 function corners(){
   return ['tl','tr','bl','br'].map(k=>{
-    const t=k[0]==='t', b=k[0]==='b', l=k[1]==='l', r=k[1]==='r';
-    return '<span class="corner" style="'+
-      (t?'top:16px;':'') + (b?'bottom:16px;':'') + (l?'left:16px;':'') + (r?'right:16px;':'') +
+    const t=k[0]==='t',b=k[0]==='b',l=k[1]==='l',r=k[1]==='r';
+    return '<span class="corner" style="'+(t?'top:16px;':'')+(b?'bottom:16px;':'')+(l?'left:16px;':'')+(r?'right:16px;':'')+
       'border-width:'+(t?2:0)+'px '+(r?2:0)+'px '+(b?2:0)+'px '+(l?2:0)+'px;"></span>';
   }).join('');
 }
@@ -212,66 +298,91 @@ function meterImg(cor){
   return '<div class="mimg" style="background:'+cor+'"><div class="disp"></div>'+
     '<div class="dial"><div class="needle" style="background:'+cor+'"></div></div></div>';
 }
-function bloco(label, txt){
-  return '<div class="bloco"><div class="blabel mono">'+label+'</div><div class="btext">'+txt+'</div></div>';
-}
+function bloco(l,t){return '<div class="bloco"><div class="blabel mono">'+l+'</div><div class="btext">'+t+'</div></div>';}
 function resultado(e, ctx){
-  return '<div class="res">'+
-    '<div class="rhead"><div class="badge mono" style="background:'+e.cor+'">'+e.sigla+'</div>'+
-      '<div><div class="rname">'+e.nome+'</div><div class="rdial">Posição no seletor: '+e.dial+'</div></div></div>'+
+  return '<div class="res"><div class="rhead"><div class="badge mono" style="background:'+e.cor+'">'+e.sigla+'</div>'+
+    '<div><div class="rname">'+e.nome+'</div><div class="rdial">Posi\u00e7\u00e3o no seletor: '+e.dial+'</div></div></div>'+
     '<div class="lcd"><div class="val mono">'+e.mostra+'</div></div>'+
-    (ctx ? '<div class="ctx">'+icon('info',16,e.cor)+'<span>'+ctx+'</span></div>' : '')+
-    bloco('PARA QUE SERVE', e.pra)+
-    bloco('COMO USAR', e.como)+
-    (e.faixas!=='—' ? bloco('FAIXAS TÍPICAS', e.faixas) : '')+
-    (e.perigo ?
-      '<div class="warn"><div class="warnhead">'+icon('alert',14)+' ALTA TENSÃO — CUIDADO</div>'+
-      '<div class="warntext">Nunca toque nas partes metálicas das pontas. Confirme que o multímetro está em tensão AC (V~) e numa faixa alta antes de encostar. Na dúvida, chame um eletricista.</div></div>' : '')+
+    (ctx?'<div class="ctx">'+icon('info',16,e.cor)+'<span>'+ctx+'</span></div>':'')+
+    bloco('PARA QUE SERVE', e.pra)+bloco('COMO USAR', e.como)+
+    (e.faixas!=='\u2014'?bloco('FAIXAS T\u00cdPICAS', e.faixas):'')+
+    (e.perigo?'<div class="warn"><div class="warnhead">'+icon('alert',14)+' ALTA TENS\u00c3O \u2014 CUIDADO</div>'+
+      '<div class="warntext">Nunca toque nas partes met\u00e1licas das pontas. Confirme que o mult\u00edmetro est\u00e1 em tens\u00e3o AC (V~) e numa faixa alta antes de encostar. Na d\u00favida, chame um eletricista.</div></div>':'')+
   '</div>';
 }
-
-/* ---- Tela Identificar ---- */
-function telaId(){
-  if(state.alvo){
-    const a = ALVOS.find(x=>x.id===state.alvo), e = getE(a.escala);
-    return '<button class="back" data-act="voltar">'+icon('arrow',16)+' Escolher outro</button>'+
-      '<div style="display:flex;align-items:center;gap:8px;margin:4px 0 14px">'+
-        icon(a.ic,22,C.yellow)+'<div style="font-size:18px;font-weight:700">'+a.nome+'</div></div>'+
-      resultado(e, a.dica);
-  }
-  const cards = ALVOS.map(a=>{
-    const col = a.escala==='vac' ? C.red : C.yellow;
-    return '<button class="card alvo" data-act="alvo" data-id="'+a.id+'">'+
-      icon(a.ic,24,col)+'<span class="nm">'+a.nome+'</span></button>';
-  }).join('');
-  return '<div class="cam"><div class="viewport">'+corners()+
-      '<div style="text-align:center;color:var(--mut)">'+icon('camera',30,C.yellow)+
-      '<div style="font-size:12px;margin-top:6px">Aponte para o que quer testar</div></div></div>'+
-      '<button class="shoot mono" disabled style="opacity:.9;cursor:not-allowed">FOTOGRAFAR</button></div>'+
-    '<div class="note" style="margin-bottom:18px">'+icon('info',15,'var(--mut)')+
-      '<span>Na versão final a câmera reconhece o objeto. Por enquanto, toque no que você vai testar:</span></div>'+
-    '<div class="grid">'+cards+'</div>';
+function gridAlvos(){
+  return '<div class="grid">'+ALVOS.map(a=>{
+    const col = a.escala==='vac'?C.red:C.yellow;
+    return '<button class="card alvo" data-act="alvo" data-id="'+a.id+'">'+icon(a.ic,24,col)+'<span class="nm">'+a.nome+'</span></button>';
+  }).join('')+'</div>';
 }
 
-/* ---- Tela Manual ---- */
+/* ============ Tela Identificar ============ */
+function telaId(){
+  if(state.alvo){
+    const a = getA(state.alvo), e = getE(a.escala);
+    return '<button class="back" data-act="voltar">'+icon('arrow',16)+' Escolher outro</button>'+
+      '<div style="display:flex;align-items:center;gap:8px;margin:4px 0 14px">'+icon(a.ic,22,C.yellow)+
+      '<div style="font-size:18px;font-weight:700">'+a.nome+'</div></div>'+ resultado(e, a.dica);
+  }
+  if(state.camMode==='live'){
+    return '<div class="cam"><div class="viewport">'+corners()+'<video id="cam" autoplay playsinline muted></video></div>'+
+      '<button class="shoot mono" data-act="shoot">FOTOGRAFAR</button>'+
+      '<button class="ghost" data-act="closecam">Fechar c\u00e2mera</button></div>'+
+      '<div class="note">'+icon('info',15,'var(--mut)')+'<span>Enquadre o objeto e toque em Fotografar.</span></div>';
+  }
+  if(state.camMode==='analyzing'){
+    return '<div class="cam"><div class="viewport">'+(state.photo?'<img class="capimg" src="'+state.photo+'">':'')+'</div></div>'+
+      '<div style="display:flex;align-items:center;gap:12px;justify-content:center;padding:8px 0 4px">'+
+      '<div class="spin"></div><span style="color:var(--mut);font-size:13px">Analisando a imagem\u2026</span></div>';
+  }
+  if(state.camMode==='confirm'){
+    const a = getA(state.guess.alvoId);
+    const col = a.escala==='vac'?C.red:C.yellow;
+    return '<div class="guessbox"><div class="guesshead">'+
+        (state.photo?'<img src="'+state.photo+'" style="width:56px;height:56px;border-radius:12px;object-fit:cover">':icon(a.ic,28,col))+
+        '<div><div style="font-weight:700;font-size:16px">Acho que \u00e9: '+a.nome+'</div>'+
+        '<div class="conf">confian\u00e7a da IA: '+state.guess.prob+'%</div></div></div>'+
+      '<div class="note" style="margin-bottom:12px">'+icon('info',15,col)+'<span>Confirme antes de medir \u2014 a c\u00e2mera pode errar.</span></div>'+
+      '<div class="rowbtn"><button class="btnY" data-act="confirmar">Sim, \u00e9 isso</button>'+
+      '<button class="btnG" data-act="nomodel">N\u00e3o, ver a lista</button></div></div>';
+  }
+  const iaOff = !MODEL_URL;
+  const status = iaOff
+    ? '<span class="pill" style="background:rgba(138,146,158,.15);color:var(--mut)">'+icon('info',12)+' IA ainda n\u00e3o treinada</span>'
+    : '<span class="pill" style="background:rgba(79,191,123,.15);color:var(--green)">'+icon('check',12)+' IA ativa</span>';
+  let head;
+  if(state.camMode==='nomodel'){
+    head = '<div class="note" style="margin-bottom:14px">'+icon('info',15,C.yellow)+'<span>'+(state.msg||'Escolha o que vai testar:')+'</span></div>';
+  }else{
+    head = '<div class="cam"><div class="viewport">'+corners()+
+      '<div style="text-align:center;color:var(--mut)">'+icon('camera',30,C.yellow)+
+      '<div style="font-size:12px;margin-top:6px">Aponte para o que quer testar</div></div></div>'+
+      '<button class="shoot mono" data-act="opencam">ABRIR C\u00c2MERA</button></div>'+
+      '<div style="margin-bottom:12px">'+status+'</div>'+
+      (state.msg?'<div class="note" style="margin-bottom:12px;color:var(--red)">'+icon('alert',15,C.red)+'<span>'+state.msg+'</span></div>':'')+
+      '<div class="note" style="margin-bottom:14px">'+icon('info',15,'var(--mut)')+'<span>Ou toque direto no que voc\u00ea vai testar:</span></div>';
+  }
+  return head + gridAlvos();
+}
+
+/* ============ Tela Manual ============ */
 function telaManual(){
   const items = ESCALAS.map(e=>{
     const open = state.escala===e.id;
-    return '<div class="acc'+(open?' open':'')+'" style="'+(open?'border-color:'+e.cor:'')+'">'+
+    return '<div class="acc" style="'+(open?'border-color:'+e.cor:'')+'">'+
       '<button class="accbtn" data-act="escala" data-id="'+e.id+'">'+
         '<div class="badgeSm mono" style="background:'+e.cor+'">'+e.sigla+'</div>'+
-        '<div class="accmid"><div class="t">'+e.nome+'</div><div class="d">'+e.pra.slice(0,42)+'…</div></div>'+
+        '<div class="accmid"><div class="t">'+e.nome+'</div><div class="d">'+e.pra.slice(0,42)+'\u2026</div></div>'+
         (e.perigo?icon('alert',16,C.red):'')+
-        '<span class="chev'+(open?' r':'')+'">'+icon('chev',18,'var(--mut)')+'</span>'+
-      '</button>'+
-      (open ? '<div class="accbody">'+resultado(e)+'</div>' : '')+
-    '</div>';
+        '<span class="chev'+(open?' r':'')+'">'+icon('chev',18,'var(--mut)')+'</span></button>'+
+      (open?'<div class="accbody">'+resultado(e)+'</div>':'')+'</div>';
   }).join('');
   return '<div style="margin-bottom:14px"><div class="h1">Manual universal</div>'+
-    '<div class="lead">As escalas básicas que aparecem em qualquer multímetro. Toque para abrir.</div></div>'+items;
+    '<div class="lead">As escalas b\u00e1sicas que aparecem em qualquer mult\u00edmetro. Toque para abrir.</div></div>'+items;
 }
 
-/* ---- Tela Multímetros ---- */
+/* ============ Tela Mult\u00edmetros ============ */
 function telaMeters(){
   if(state.meter){
     const m = METERS.find(x=>x.id===state.meter);
@@ -282,26 +393,24 @@ function telaMeters(){
           '<div class="badgeSm mono" style="width:40px;height:40px;font-size:15px;background:'+e.cor+'">'+e.sigla+'</div>'+
           '<div class="accmid"><div class="t" style="font-size:14px">'+e.nome+'</div></div>'+
           (e.perigo?icon('alert',15,C.red):'')+
-          '<span class="chev'+(open?' r':'')+'">'+icon('chev',17,'var(--mut)')+'</span>'+
-        '</button>'+ (open?'<div class="accbody">'+resultado(e)+'</div>':'') +'</div>';
+          '<span class="chev'+(open?' r':'')+'">'+icon('chev',17,'var(--mut)')+'</span></button>'+
+        (open?'<div class="accbody">'+resultado(e)+'</div>':'')+'</div>';
     }).join('');
     return '<button class="back" data-act="voltar">'+icon('arrow',16)+' Todos os modelos</button>'+
       '<div style="display:flex;align-items:center;gap:12px;margin:4px 0 6px">'+meterImg(m.cor)+
-        '<div><div class="h1">'+m.nome+'</div><div class="minfo"><div class="ty">'+m.tipo+' · '+m.nota+'</div></div></div></div>'+
+        '<div><div class="h1">'+m.nome+'</div><div class="ty" style="color:var(--mut);font-size:12px">'+m.tipo+' \u00b7 '+m.nota+'</div></div></div>'+
       '<div class="infobar" style="margin:10px 0 4px">'+icon('info',15,C.yellow)+'<span>'+m.falta+'</span></div>'+
       '<div class="seclabel mono">ESCALAS DESTE MODELO</div>'+escalas;
   }
   const list = METERS.map(m=>{
     const sc = m.tem.map(t=>getE(t).sigla).join('  ');
     return '<button class="card meter" data-act="meter" data-id="'+m.id+'">'+meterImg(m.cor)+
-      '<div class="minfo"><div class="n">'+m.nome+'</div><div class="ty">'+m.tipo+' · '+m.nota+'</div>'+
+      '<div class="minfo"><div class="n">'+m.nome+'</div><div class="ty">'+m.tipo+' \u00b7 '+m.nota+'</div>'+
       '<div class="sc mono">'+sc+'</div></div>'+icon('chev',18,'var(--mut)')+'</button>';
   }).join('');
-  return '<div style="margin-bottom:14px"><div class="h1">Multímetros comuns</div>'+
+  return '<div style="margin-bottom:14px"><div class="h1">Mult\u00edmetros comuns</div>'+
     '<div class="lead">Modelos mais baratos e populares. Toque para ver as escalas de cada um.</div></div>'+
-    '<div style="display:flex;flex-direction:column;gap:10px">'+list+'</div>'+
-    '<div class="note" style="margin-top:16px">'+icon('info',14,'var(--mut)')+
-    '<span style="font-size:11.5px">No app publicado, cada modelo terá a foto real do multímetro.</span></div>';
+    '<div style="display:flex;flex-direction:column;gap:10px">'+list+'</div>';
 }
 
 /* ============ render ============ */
@@ -312,28 +421,32 @@ function render(){
   else if(state.tab==='manual') main.innerHTML = telaManual();
   else main.innerHTML = telaMeters();
 
-  const tabs = [
-    {id:'id', label:'Identificar', ic:'camera'},
-    {id:'manual', label:'Manual', ic:'book'},
-    {id:'meters', label:'Multímetros', ic:'gauge'}
-  ];
+  if(state.tab==='id' && state.camMode==='live' && camStream){
+    const v = document.getElementById('cam');
+    if(v){ v.srcObject = camStream; v.play().catch(()=>{}); }
+  }
+  const tabs = [{id:'id',label:'Identificar',ic:'camera'},{id:'manual',label:'Manual',ic:'book'},{id:'meters',label:'Mult\u00edmetros',ic:'gauge'}];
   document.getElementById('nav').innerHTML = tabs.map(t=>{
     const on = state.tab===t.id;
     return '<button class="'+(on?'on':'')+'" data-act="tab" data-id="'+t.id+'">'+
-      icon(t.ic,20, on?'var(--yellow)':'var(--mut)')+'<span class="lbl mono">'+t.label+'</span></button>';
+      icon(t.ic,20,on?'var(--yellow)':'var(--mut)')+'<span class="lbl mono">'+t.label+'</span></button>';
   }).join('');
 }
 
 /* ============ eventos ============ */
 document.getElementById('app').addEventListener('click', ev=>{
-  const btn = ev.target.closest('[data-act]');
-  if(!btn) return;
+  const btn = ev.target.closest('[data-act]'); if(!btn) return;
   const act = btn.dataset.act, id = btn.dataset.id;
-  if(act==='tab'){ state = {tab:id, alvo:null, meter:null, escala:null}; }
+  if(act==='opencam'){ openCam(); return; }
+  if(act==='shoot'){ shoot(); return; }
+  if(act==='closecam'){ stopCam(); state.camMode='idle'; state.msg=null; render(); return; }
+  if(act==='tab'){ stopCam(); state = {tab:id, alvo:null, meter:null, escala:null, camMode:'idle', guess:null, photo:null, msg:null}; }
   else if(act==='alvo'){ state.alvo = id; }
+  else if(act==='confirmar'){ state.alvo = state.guess.alvoId; state.camMode='idle'; }
+  else if(act==='nomodel'){ state.camMode='nomodel'; }
   else if(act==='meter'){ state.meter = id; state.escala = null; }
-  else if(act==='escala'){ state.escala = (state.escala===id ? null : id); }
-  else if(act==='voltar'){ state.alvo=null; state.meter=null; state.escala=null; }
+  else if(act==='escala'){ state.escala = (state.escala===id?null:id); }
+  else if(act==='voltar'){ stopCam(); state.alvo=null; state.meter=null; state.escala=null; state.camMode='idle'; state.msg=null; }
   render();
   document.getElementById('main').scrollTop = 0;
 });
