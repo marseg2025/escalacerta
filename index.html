@@ -234,12 +234,23 @@ let tmModel = null;
 /* ============ c\u00e2mera + IA ============ */
 async function openCam(){
   state.msg = null;
+  stopCam();                       // libera qualquer c\u00e2mera ainda aberta
+  await new Promise(r=>setTimeout(r,150)); // d\u00e1 tempo do aparelho soltar
   try{
     camStream = await navigator.mediaDevices.getUserMedia({
       video:{ facingMode:{ideal:'environment'} }, audio:false });
     state.camMode = 'live'; render();
   }catch(e){
-    state.msg = 'N\u00e3o consegui acessar a c\u00e2mera. Verifique a permiss\u00e3o do navegador \u2014 ou use a lista abaixo.';
+    const n = e && e.name;
+    if(n==='NotAllowedError' || n==='SecurityError')
+      state.msg = 'A c\u00e2mera est\u00e1 bloqueada para este site. Toque no cadeado ao lado do endere\u00e7o \u2192 Permiss\u00f5es \u2192 C\u00e2mera \u2192 Permitir, e recarregue a p\u00e1gina.';
+    else if(n==='NotReadableError' || n==='AbortError' || n==='TrackStartError')
+      state.msg = 'A c\u00e2mera est\u00e1 ocupada por outro app. Feche outros apps de c\u00e2mera (ou feche e reabra esta aba) e toque em ABRIR C\u00c2MERA de novo.';
+    else if(n==='NotFoundError' || n==='OverconstrainedError')
+      state.msg = 'N\u00e3o encontrei uma c\u00e2mera dispon\u00edvel neste aparelho.';
+    else
+      state.msg = 'N\u00e3o consegui abrir a c\u00e2mera. Feche e reabra a aba e tente de novo \u2014 ou use a lista abaixo.';
+    state.camMode = 'idle';
     render();
   }
 }
