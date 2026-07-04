@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1E2229">
+<title>Escala Certa</title>
+<style>
+  :root{
+    --bg:#141619; --panel:#1E2229; --panelHi:#262B33; --line:#333A44;
+    --ink:#E8EAED; --mut:#8A929E; --yellow:#F5C518; --red:#E5443B;
+    --blue:#4FB0E0; --lcd:#B9C7A6; --lcdBg:#2A3128;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg);}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--ink);}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+  button{font-family:inherit;}
+  #app{max-width:430px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;
+       background:var(--bg); position:relative;}
+  header{padding:16px 18px 12px; border-bottom:1px solid var(--line); background:var(--panel);
+         position:sticky; top:0; z-index:5;}
+  .brandrow{display:flex; align-items:center; gap:10px;}
+  .logo{width:30px; height:30px; border-radius:8px; background:var(--yellow);
+        display:flex; align-items:center; justify-content:center;}
+  .title{font-weight:800; letter-spacing:.04em; font-size:17px;}
+  .title span{color:var(--yellow);}
+  .sub{color:var(--mut); font-size:10.5px; margin-top:-2px;}
+  main{flex:1; padding:16px; padding-bottom:92px; overflow-y:auto;}
+  nav{position:sticky; bottom:0; display:flex; background:var(--panel); border-top:1px solid var(--line);}
+  nav button{flex:1; padding:10px 0 12px; background:none; border:none; cursor:pointer;
+             display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--mut);
+             border-top:2px solid transparent; margin-top:-1px;}
+  nav button.on{color:var(--yellow); border-top-color:var(--yellow);}
+  nav .lbl{font-size:10.5px; letter-spacing:.02em;}
+  svg{display:block;}
+  .h1{font-size:18px; font-weight:700;}
+  .lead{color:var(--mut); font-size:12.5px; margin-top:2px; line-height:1.5;}
+  /* grade de alvos */
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; cursor:pointer;
+        color:var(--ink); text-align:left;}
+  .alvo{padding:16px 12px; display:flex; flex-direction:column; gap:8px;}
+  .alvo .nm{font-size:13.5px; font-weight:600;}
+  /* câmera */
+  .cam{border-radius:16px; overflow:hidden; border:1px solid var(--line); background:#0C0E10; margin-bottom:16px;}
+  .viewport{height:150px; position:relative; display:flex; align-items:center; justify-content:center;
+            background:repeating-linear-gradient(135deg,#0C0E10 0 12px,#111417 12px 24px);}
+  .corner{position:absolute; width:26px; height:26px; border-color:var(--yellow); border-style:solid;}
+  .shoot{width:100%; padding:12px; background:var(--yellow); border:none; color:#141619;
+         font-weight:800; font-size:14px; cursor:pointer;}
+  .note{display:flex; align-items:flex-start; gap:8px; color:var(--mut); font-size:12px; line-height:1.5;}
+  .back{background:none; border:none; cursor:pointer; color:var(--mut); display:flex; align-items:center;
+        gap:6px; padding:0 0 10px; font-size:13px;}
+  /* resultado / escala */
+  .res{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px;}
+  .rhead{display:flex; align-items:center; gap:12px; margin-bottom:12px;}
+  .badge{width:52px; height:52px; border-radius:12px; color:#141619; font-weight:800; font-size:18px;
+         display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .rname{font-weight:700; font-size:16px;}
+  .rdial{color:var(--mut); font-size:12px;}
+  .lcd{background:var(--lcdBg); border:1px solid var(--line); border-radius:10px; padding:18px 16px;
+       box-shadow:inset 0 2px 8px rgba(0,0,0,.5); margin-bottom:12px;}
+  .lcd .val{color:var(--lcd); letter-spacing:.05em; font-size:30px; line-height:1.15; font-weight:700;}
+  .ctx{display:flex; align-items:flex-start; gap:8px; background:var(--panelHi); border-radius:10px;
+       padding:10px 12px; margin-bottom:12px; font-size:13px; line-height:1.5;}
+  .bloco{margin-bottom:12px;}
+  .blabel{color:var(--mut); font-size:11px; letter-spacing:.08em; margin-bottom:4px;}
+  .btext{font-size:13.5px; line-height:1.55;}
+  .warn{background:rgba(229,68,59,.12); border:1px solid var(--red); border-radius:10px; padding:10px 12px; margin-top:4px;}
+  .warnhead{display:flex; align-items:center; gap:6px; color:var(--red); font-size:12px; font-weight:700;}
+  .warntext{font-size:12.5px; line-height:1.5; margin-top:4px;}
+  /* accordion */
+  .acc{background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-bottom:10px;}
+  .acc.open{}
+  .accbtn{width:100%; padding:14px; background:none; border:none; cursor:pointer; display:flex;
+          align-items:center; gap:12px; color:var(--ink);}
+  .badgeSm{width:44px; height:44px; border-radius:10px; color:#141619; font-weight:800; font-size:16px;
+           display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .accmid{flex:1; text-align:left;}
+  .accmid .t{font-weight:700; font-size:14.5px;}
+  .accmid .d{color:var(--mut); font-size:11.5px;}
+  .chev{transition:transform .2s;}
+  .chev.r{transform:rotate(90deg);}
+  .accbody{padding:0 14px 14px;}
+  /* multimetros */
+  .meter{padding:14px; display:flex; align-items:center; gap:14px; width:100%;}
+  .mimg{width:46px; height:58px; border-radius:8px; border:1px solid var(--line); flex-shrink:0;
+        padding:4px; display:flex; flex-direction:column; gap:3px;}
+  .mimg .disp{height:16px; border-radius:3px; background:var(--lcdBg); border:1px solid var(--line);}
+  .mimg .dial{flex:1; border-radius:50%; background:#141619; position:relative;}
+  .mimg .needle{position:absolute; width:2px; height:12px; left:50%; top:50%;
+                transform:translate(-50%,-90%) rotate(35deg); transform-origin:bottom center;}
+  .minfo{flex:1; text-align:left;}
+  .minfo .n{font-weight:700; font-size:15px;}
+  .minfo .ty{color:var(--mut); font-size:12px;}
+  .minfo .sc{color:var(--mut); font-size:10.5px; margin-top:4px;}
+  .infobar{display:flex; align-items:flex-start; gap:8px; background:var(--panelHi); border-radius:10px;
+           padding:10px 12px; font-size:12.5px; line-height:1.5;}
+  .seclabel{color:var(--mut); font-size:11px; letter-spacing:.08em; margin:16px 0 8px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brandrow">
+      <div class="logo" id="ic-logo"></div>
+      <div>
+        <div class="title mono">ESCALA <span>CERTA</span></div>
+        <div class="sub">seu multímetro sem mistério</div>
+      </div>
+    </div>
+  </header>
+  <main id="main"></main>
+  <nav id="nav"></nav>
+</div>
+
+<script>
+/* ============ ícones (SVG inline, funcionam offline) ============ */
+const P = {
+  camera:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+  book:'<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  gauge:'<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+  plug:'<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>',
+  battery:'<rect width="16" height="10" x="2" y="7" rx="2"/><line x1="22" x2="22" y1="11" y2="13"/><line x1="6" x2="6" y1="11" y2="13"/><line x1="10" x2="10" y1="11" y2="13"/>',
+  cable:'<path d="M17 21v-2a1 1 0 0 0-1-1h-2"/><path d="M4 3v2a1 1 0 0 0 1 1h2"/><path d="M7 3v3"/><path d="M4 9v3a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V9"/><path d="M14 3v3"/><path d="M17 21h4"/><path d="M13 21h1"/>',
+  bulb:'<path d="M15 14c.2-1 .7-1.7 1.5-2.5C17.7 10.2 18 9 18 8a6 6 0 0 0-12 0c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  zap:'<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+  cpu:'<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/>',
+  wave:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  chev:'<path d="m9 18 6-6-6-6"/>',
+  arrow:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'
+};
+function icon(name,size,color){
+  return '<svg width="'+(size||20)+'" height="'+(size||20)+'" viewBox="0 0 24 24" fill="none" stroke="'+(color||'currentColor')+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+P[name]+'</svg>';
+}
+
+/* ============ dados ============ */
+const C = {yellow:'#F5C518', red:'#E5443B', blue:'#4FB0E0'};
+
+const ESCALAS = [
+  {id:'vdc', cor:C.blue, sigla:'V⎓', mostra:'V⎓ 20', nome:'Tensão contínua (DC)',
+   dial:'V com uma linha reta e outra tracejada',
+   pra:'Medir pilhas, baterias, fontes, carregadores e eletrônica de carro (12V).',
+   como:'Pré-selecione um valor ACIMA do esperado. Ponta preta no COM, vermelha no VΩmA. Encoste a vermelha no + e a preta no −.',
+   faixas:'200m · 2 · 20 · 200 · 1000', perigo:false},
+  {id:'vac', cor:C.red, sigla:'V~', mostra:'V~ 750', nome:'Tensão alternada (AC)',
+   dial:'V com o símbolo de onda ~',
+   pra:'Medir tomada, rede elétrica (127V ou 220V) e transformadores.',
+   como:'Selecione a faixa acima da rede (use 750/600 para tomada). Sem polaridade: uma ponta em cada furo da tomada.',
+   faixas:'200 · 750', perigo:true},
+  {id:'ohm', cor:C.yellow, sigla:'Ω', mostra:'Ω 20k', nome:'Resistência',
+   dial:'Símbolo Ω (ômega)',
+   pra:'Medir resistores e conferir se um fio/enrolamento está partido.',
+   como:'SEMPRE com o circuito DESLIGADO e sem energia. Encoste uma ponta em cada terminal do componente.',
+   faixas:'200 · 2k · 20k · 200k · 2M', perigo:false},
+  {id:'cont', cor:C.yellow, sigla:'•))', mostra:'•)) bip', nome:'Continuidade (bip)',
+   dial:'Ícone de som/ondinha, às vezes junto com o diodo',
+   pra:'Testar fios, fusíveis, chaves e trilhas: se estiver inteiro, apita.',
+   como:'Circuito DESLIGADO. Encoste as duas pontas nas extremidades. Apitou = passagem/inteiro. Silêncio = interrompido.',
+   faixas:'—', perigo:false},
+  {id:'adc', cor:C.blue, sigla:'A⎓', mostra:'A⎓ 200m', nome:'Corrente contínua (DC)',
+   dial:'A com linha reta e tracejada',
+   pra:'Medir quanto um circuito consome (em mA ou A).',
+   como:'É medido EM SÉRIE (o multímetro entra no meio do circuito). Acima de 200mA, passe a ponta vermelha para o furo de 10A.',
+   faixas:'200µ · 2m · 20m · 200m · 10A', perigo:false},
+  {id:'diodo', cor:C.blue, sigla:'▶|', mostra:'▶| 0.6', nome:'Teste de diodo',
+   dial:'Símbolo de seta com barra ▶|',
+   pra:'Testar diodos e LEDs e descobrir o sentido certo (anodo/catodo).',
+   como:'Vermelha no anodo, preta no catodo: mostra ~0,6. Invertendo, dá aberto (1 ou OL). O LED até acende fraquinho.',
+   faixas:'—', perigo:false}
+];
+const getE = id => ESCALAS.find(e=>e.id===id);
+
+const ALVOS = [
+  {id:'tomada', nome:'Tomada / Rede', ic:'plug', escala:'vac', dica:'127V ou 220V. Tensão de rede é perigosa — muita atenção com as pontas.'},
+  {id:'pilha', nome:'Pilha / Bateria', ic:'battery', escala:'vdc', dica:'AA/AAA ≈ 1,5V · Bateria 9V · Bateria de carro 12V.'},
+  {id:'fonte', nome:'Carregador / Fonte', ic:'zap', escala:'vdc', dica:'Meça a saída (a etiqueta diz, ex.: 5V, 12V). Respeite + e −.'},
+  {id:'fio', nome:'Cabo / Fio', ic:'cable', escala:'cont', dica:'Descubra se está rompido por dentro. Sempre desenergizado.'},
+  {id:'fusivel', nome:'Fusível', ic:'cpu', escala:'cont', dica:'Apitou = bom. Silêncio = queimado, precisa trocar.'},
+  {id:'resistor', nome:'Resistor', ic:'wave', escala:'ohm', dica:'Confira o valor real e se não está aberto/queimado.'},
+  {id:'led', nome:'LED / Diodo', ic:'bulb', escala:'diodo', dica:'Testa se está bom e mostra o lado certo de ligar.'},
+  {id:'lampada', nome:'Lâmpada', ic:'bulb', escala:'cont', dica:'Filamento inteiro apita. Desligada da energia.'}
+];
+
+const METERS = [
+  {id:'830b', nome:'DT-830B', tipo:'Digital', nota:'O mais barato de todos', cor:C.yellow,
+   tem:['vdc','vac','ohm','adc','diodo'], falta:'Não tem bip de continuidade.'},
+  {id:'830d', nome:'DT-830D / DT-832', tipo:'Digital', nota:'Barato, com bip', cor:C.yellow,
+   tem:['vdc','vac','ohm','cont','adc','diodo'], falta:'Tem todo o básico presente.'},
+  {id:'9205', nome:'DT-9205A', tipo:'Digital', nota:'Mais completo', cor:'#3A3F47',
+   tem:['vdc','vac','ohm','cont','adc','diodo'], falta:'Ainda tem capacitância e teste de transistor (hFE).'},
+  {id:'analog', nome:'Analógico (agulha)', tipo:'Analógico', nota:'Ex.: Minipa ET-1002', cor:'#3A3F47',
+   tem:['vdc','vac','ohm','adc'], falta:'Leitura na agulha; zere o Ω antes de medir.'}
+];
+
+/* ============ estado ============ */
+let state = {tab:'id', alvo:null, meter:null, escala:null};
+
+/* ============ componentes (HTML string) ============ */
+function corners(){
+  return ['tl','tr','bl','br'].map(k=>{
+    const t=k[0]==='t', b=k[0]==='b', l=k[1]==='l', r=k[1]==='r';
+    return '<span class="corner" style="'+
+      (t?'top:16px;':'') + (b?'bottom:16px;':'') + (l?'left:16px;':'') + (r?'right:16px;':'') +
+      'border-width:'+(t?2:0)+'px '+(r?2:0)+'px '+(b?2:0)+'px '+(l?2:0)+'px;"></span>';
+  }).join('');
+}
+function meterImg(cor){
+  return '<div class="mimg" style="background:'+cor+'"><div class="disp"></div>'+
+    '<div class="dial"><div class="needle" style="background:'+cor+'"></div></div></div>';
+}
+function bloco(label, txt){
+  return '<div class="bloco"><div class="blabel mono">'+label+'</div><div class="btext">'+txt+'</div></div>';
+}
+function resultado(e, ctx){
+  return '<div class="res">'+
+    '<div class="rhead"><div class="badge mono" style="background:'+e.cor+'">'+e.sigla+'</div>'+
+      '<div><div class="rname">'+e.nome+'</div><div class="rdial">Posição no seletor: '+e.dial+'</div></div></div>'+
+    '<div class="lcd"><div class="val mono">'+e.mostra+'</div></div>'+
+    (ctx ? '<div class="ctx">'+icon('info',16,e.cor)+'<span>'+ctx+'</span></div>' : '')+
+    bloco('PARA QUE SERVE', e.pra)+
+    bloco('COMO USAR', e.como)+
+    (e.faixas!=='—' ? bloco('FAIXAS TÍPICAS', e.faixas) : '')+
+    (e.perigo ?
+      '<div class="warn"><div class="warnhead">'+icon('alert',14)+' ALTA TENSÃO — CUIDADO</div>'+
+      '<div class="warntext">Nunca toque nas partes metálicas das pontas. Confirme que o multímetro está em tensão AC (V~) e numa faixa alta antes de encostar. Na dúvida, chame um eletricista.</div></div>' : '')+
+  '</div>';
+}
+
+/* ---- Tela Identificar ---- */
+function telaId(){
+  if(state.alvo){
+    const a = ALVOS.find(x=>x.id===state.alvo), e = getE(a.escala);
+    return '<button class="back" data-act="voltar">'+icon('arrow',16)+' Escolher outro</button>'+
+      '<div style="display:flex;align-items:center;gap:8px;margin:4px 0 14px">'+
+        icon(a.ic,22,C.yellow)+'<div style="font-size:18px;font-weight:700">'+a.nome+'</div></div>'+
+      resultado(e, a.dica);
+  }
+  const cards = ALVOS.map(a=>{
+    const col = a.escala==='vac' ? C.red : C.yellow;
+    return '<button class="card alvo" data-act="alvo" data-id="'+a.id+'">'+
+      icon(a.ic,24,col)+'<span class="nm">'+a.nome+'</span></button>';
+  }).join('');
+  return '<div class="cam"><div class="viewport">'+corners()+
+      '<div style="text-align:center;color:var(--mut)">'+icon('camera',30,C.yellow)+
+      '<div style="font-size:12px;margin-top:6px">Aponte para o que quer testar</div></div></div>'+
+      '<button class="shoot mono" disabled style="opacity:.9;cursor:not-allowed">FOTOGRAFAR</button></div>'+
+    '<div class="note" style="margin-bottom:18px">'+icon('info',15,'var(--mut)')+
+      '<span>Na versão final a câmera reconhece o objeto. Por enquanto, toque no que você vai testar:</span></div>'+
+    '<div class="grid">'+cards+'</div>';
+}
+
+/* ---- Tela Manual ---- */
+function telaManual(){
+  const items = ESCALAS.map(e=>{
+    const open = state.escala===e.id;
+    return '<div class="acc'+(open?' open':'')+'" style="'+(open?'border-color:'+e.cor:'')+'">'+
+      '<button class="accbtn" data-act="escala" data-id="'+e.id+'">'+
+        '<div class="badgeSm mono" style="background:'+e.cor+'">'+e.sigla+'</div>'+
+        '<div class="accmid"><div class="t">'+e.nome+'</div><div class="d">'+e.pra.slice(0,42)+'…</div></div>'+
+        (e.perigo?icon('alert',16,C.red):'')+
+        '<span class="chev'+(open?' r':'')+'">'+icon('chev',18,'var(--mut)')+'</span>'+
+      '</button>'+
+      (open ? '<div class="accbody">'+resultado(e)+'</div>' : '')+
+    '</div>';
+  }).join('');
+  return '<div style="margin-bottom:14px"><div class="h1">Manual universal</div>'+
+    '<div class="lead">As escalas básicas que aparecem em qualquer multímetro. Toque para abrir.</div></div>'+items;
+}
+
+/* ---- Tela Multímetros ---- */
+function telaMeters(){
+  if(state.meter){
+    const m = METERS.find(x=>x.id===state.meter);
+    const escalas = m.tem.map(id=>{
+      const e = getE(id), open = state.escala===id;
+      return '<div class="acc" style="margin-bottom:8px;'+(open?'border-color:'+e.cor:'')+'">'+
+        '<button class="accbtn" data-act="escala" data-id="'+id+'" style="padding:12px">'+
+          '<div class="badgeSm mono" style="width:40px;height:40px;font-size:15px;background:'+e.cor+'">'+e.sigla+'</div>'+
+          '<div class="accmid"><div class="t" style="font-size:14px">'+e.nome+'</div></div>'+
+          (e.perigo?icon('alert',15,C.red):'')+
+          '<span class="chev'+(open?' r':'')+'">'+icon('chev',17,'var(--mut)')+'</span>'+
+        '</button>'+ (open?'<div class="accbody">'+resultado(e)+'</div>':'') +'</div>';
+    }).join('');
+    return '<button class="back" data-act="voltar">'+icon('arrow',16)+' Todos os modelos</button>'+
+      '<div style="display:flex;align-items:center;gap:12px;margin:4px 0 6px">'+meterImg(m.cor)+
+        '<div><div class="h1">'+m.nome+'</div><div class="minfo"><div class="ty">'+m.tipo+' · '+m.nota+'</div></div></div></div>'+
+      '<div class="infobar" style="margin:10px 0 4px">'+icon('info',15,C.yellow)+'<span>'+m.falta+'</span></div>'+
+      '<div class="seclabel mono">ESCALAS DESTE MODELO</div>'+escalas;
+  }
+  const list = METERS.map(m=>{
+    const sc = m.tem.map(t=>getE(t).sigla).join('  ');
+    return '<button class="card meter" data-act="meter" data-id="'+m.id+'">'+meterImg(m.cor)+
+      '<div class="minfo"><div class="n">'+m.nome+'</div><div class="ty">'+m.tipo+' · '+m.nota+'</div>'+
+      '<div class="sc mono">'+sc+'</div></div>'+icon('chev',18,'var(--mut)')+'</button>';
+  }).join('');
+  return '<div style="margin-bottom:14px"><div class="h1">Multímetros comuns</div>'+
+    '<div class="lead">Modelos mais baratos e populares. Toque para ver as escalas de cada um.</div></div>'+
+    '<div style="display:flex;flex-direction:column;gap:10px">'+list+'</div>'+
+    '<div class="note" style="margin-top:16px">'+icon('info',14,'var(--mut)')+
+    '<span style="font-size:11.5px">No app publicado, cada modelo terá a foto real do multímetro.</span></div>';
+}
+
+/* ============ render ============ */
+function render(){
+  document.getElementById('ic-logo').innerHTML = icon('gauge',18,'#141619');
+  const main = document.getElementById('main');
+  if(state.tab==='id') main.innerHTML = telaId();
+  else if(state.tab==='manual') main.innerHTML = telaManual();
+  else main.innerHTML = telaMeters();
+
+  const tabs = [
+    {id:'id', label:'Identificar', ic:'camera'},
+    {id:'manual', label:'Manual', ic:'book'},
+    {id:'meters', label:'Multímetros', ic:'gauge'}
+  ];
+  document.getElementById('nav').innerHTML = tabs.map(t=>{
+    const on = state.tab===t.id;
+    return '<button class="'+(on?'on':'')+'" data-act="tab" data-id="'+t.id+'">'+
+      icon(t.ic,20, on?'var(--yellow)':'var(--mut)')+'<span class="lbl mono">'+t.label+'</span></button>';
+  }).join('');
+}
+
+/* ============ eventos ============ */
+document.getElementById('app').addEventListener('click', ev=>{
+  const btn = ev.target.closest('[data-act]');
+  if(!btn) return;
+  const act = btn.dataset.act, id = btn.dataset.id;
+  if(act==='tab'){ state = {tab:id, alvo:null, meter:null, escala:null}; }
+  else if(act==='alvo'){ state.alvo = id; }
+  else if(act==='meter'){ state.meter = id; state.escala = null; }
+  else if(act==='escala'){ state.escala = (state.escala===id ? null : id); }
+  else if(act==='voltar'){ state.alvo=null; state.meter=null; state.escala=null; }
+  render();
+  document.getElementById('main').scrollTop = 0;
+});
+
+render();
+</script>
+</body>
+</html>
