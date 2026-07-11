@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1E2229">
+<title>Escala Certa</title>
+
+<style>
+  :root{
+    --bg:#141619; --panel:#1E2229; --panelHi:#262B33; --line:#333A44;
+    --ink:#E8EAED; --mut:#8A929E; --yellow:#F5C518; --red:#E5443B;
+    --blue:#4FB0E0; --lcd:#B9C7A6; --lcdBg:#2A3128; --green:#4FBF7B;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg);}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--ink);}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+  button{font-family:inherit;}
+  #app{max-width:430px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;
+       background:var(--bg); position:relative;}
+  header{padding:16px 18px 12px; border-bottom:1px solid var(--line); background:var(--panel);
+         position:sticky; top:0; z-index:5;}
+  .brandrow{display:flex; align-items:center; gap:10px;}
+  .logo{width:30px; height:30px; border-radius:8px; background:var(--yellow);
+        display:flex; align-items:center; justify-content:center;}
+  .title{font-weight:800; letter-spacing:.04em; font-size:17px;}
+  .title span{color:var(--yellow);}
+  .sub{color:var(--mut); font-size:10.5px; margin-top:-2px;}
+  main{flex:1; padding:16px; padding-bottom:92px; overflow-y:auto;}
+  nav{position:sticky; bottom:0; display:flex; background:var(--panel); border-top:1px solid var(--line);}
+  nav button{flex:1; padding:10px 0 12px; background:none; border:none; cursor:pointer;
+             display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--mut);
+             border-top:2px solid transparent; margin-top:-1px;}
+  nav button.on{color:var(--yellow); border-top-color:var(--yellow);}
+  nav .lbl{font-size:10.5px; letter-spacing:.02em;}
+  svg{display:block;}
+  .h1{font-size:18px; font-weight:700;}
+  .lead{color:var(--mut); font-size:12.5px; margin-top:2px; line-height:1.5;}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; cursor:pointer;
+        color:var(--ink); text-align:left;}
+  .pick{padding:14px 10px 13px; display:flex; flex-direction:column; align-items:center; gap:9px; text-align:center;}
+  .pick .ilu{width:74px; height:74px; background:var(--panelHi); border-radius:12px; padding:7px;
+             display:flex; align-items:center; justify-content:center;}
+  .pick .ilu svg{width:100%; height:100%;}
+  .pick .nm{font-size:13px; font-weight:600;}
+  .pick .tag{font-size:10px; letter-spacing:.04em; padding:2px 7px; border-radius:999px;}
+  .note{display:flex; align-items:flex-start; gap:8px; color:var(--mut); font-size:12px; line-height:1.5;}
+  .back{background:none; border:none; cursor:pointer; color:var(--mut); display:flex; align-items:center;
+        gap:6px; padding:0 0 10px; font-size:13px;}
+  .res{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px;}
+  .rhead{display:flex; align-items:center; gap:12px; margin-bottom:12px;}
+  .badge{width:52px; height:52px; border-radius:12px; color:#141619; font-weight:800; font-size:18px;
+         display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .rname{font-weight:700; font-size:16px;}
+  .rdial{color:var(--mut); font-size:12px;}
+  .lcd{background:var(--lcdBg); border:1px solid var(--line); border-radius:10px; padding:18px 16px;
+       box-shadow:inset 0 2px 8px rgba(0,0,0,.5); margin-bottom:12px;}
+  .lcd .val{color:var(--lcd); letter-spacing:.05em; font-size:30px; line-height:1.15; font-weight:700;}
+  .ctx{display:flex; align-items:flex-start; gap:8px; background:var(--panelHi); border-radius:10px;
+       padding:10px 12px; margin-bottom:12px; font-size:13px; line-height:1.5;}
+  .bloco{margin-bottom:12px;}
+  .blabel{color:var(--mut); font-size:11px; letter-spacing:.08em; margin-bottom:4px;}
+  .btext{font-size:13.5px; line-height:1.55;}
+  .warn{background:rgba(229,68,59,.12); border:1px solid var(--red); border-radius:10px; padding:10px 12px; margin-top:4px;}
+  .warnhead{display:flex; align-items:center; gap:6px; color:var(--red); font-size:12px; font-weight:700;}
+  .warntext{font-size:12.5px; line-height:1.5; margin-top:4px;}
+  .acc{background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-bottom:10px;}
+  .accbtn{width:100%; padding:14px; background:none; border:none; cursor:pointer; display:flex;
+          align-items:center; gap:12px; color:var(--ink);}
+  .badgeSm{width:44px; height:44px; border-radius:10px; color:#141619; font-weight:800; font-size:16px;
+           display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .accmid{flex:1; text-align:left;}
+  .accmid .t{font-weight:700; font-size:14.5px;}
+  .accmid .d{color:var(--mut); font-size:11.5px;}
+  .chev{transition:transform .2s;}
+  .chev.r{transform:rotate(90deg);}
+  .accbody{padding:0 14px 14px;}
+  .meter{padding:14px; display:flex; align-items:center; gap:14px; width:100%;}
+  .mimg{width:46px; height:58px; border-radius:8px; border:1px solid var(--line); flex-shrink:0;
+        padding:4px; display:flex; flex-direction:column; gap:3px;}
+  .mimg .disp{height:16px; border-radius:3px; background:var(--lcdBg); border:1px solid var(--line);}
+  .mimg .dial{flex:1; border-radius:50%; background:#141619; position:relative;}
+  .mimg .needle{position:absolute; width:2px; height:12px; left:50%; top:50%;
+                transform:translate(-50%,-90%) rotate(35deg); transform-origin:bottom center;}
+  .minfo{flex:1; text-align:left;}
+  .minfo .n{font-weight:700; font-size:15px;}
+  .minfo .ty{color:var(--mut); font-size:12px;}
+  .minfo .sc{color:var(--mut); font-size:10.5px; margin-top:4px;}
+  .infobar{display:flex; align-items:flex-start; gap:8px; background:var(--panelHi); border-radius:10px;
+           padding:10px 12px; font-size:12.5px; line-height:1.5;}
+  .seclabel{color:var(--mut); font-size:11px; letter-spacing:.08em; margin:16px 0 8px;}
+  .dialwrap{margin-bottom:14px;}
+  .dialbox{background:#0E1013; border:1px solid var(--line); border-radius:12px; padding:8px; display:flex; justify-content:center;}
+  .dialbox svg{width:100%; max-width:290px; height:auto;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brandrow">
+      <div class="logo" id="ic-logo"></div>
+      <div>
+        <div class="title mono">ESCALA <span>CERTA</span></div>
+        <div class="sub">seu multímetro sem mistério</div>
+      </div>
+    </div>
+  </header>
+  <main id="main"></main>
+  <nav id="nav"></nav>
+</div>
+
+<script>
+/* ============ ícones (interface) ============ */
+const P = {
+  book:'<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  gauge:'<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  chev:'<path d="m9 18 6-6-6-6"/>',
+  arrow:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'
+};
+function icon(n,s,c){return '<svg width="'+(s||20)+'" height="'+(s||20)+'" viewBox="0 0 24 24" fill="none" stroke="'+(c||'currentColor')+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+P[n]+'</svg>';}
+
+/* ============ ilustrações dos objetos (SVG embutido, funciona offline) ============ */
+const ILU = {
+  tomada:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="16" y="16" width="68" height="68" rx="16" fill="#E8EAED" stroke="#AEB4BD" stroke-width="2"/>
+    <circle cx="50" cy="50" r="25" fill="#F4F5F7" stroke="#CBD0D8" stroke-width="1.5"/>
+    <circle cx="38" cy="45" r="5" fill="#141619"/>
+    <circle cx="62" cy="45" r="5" fill="#141619"/>
+    <circle cx="50" cy="64" r="5" fill="#141619"/>
+  </svg>`,
+  pilha:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="14" y="35" width="64" height="30" rx="6" fill="#F5C518" stroke="#C99C00" stroke-width="2"/>
+    <rect x="14" y="35" width="20" height="30" rx="6" fill="#E5443B"/>
+    <rect x="78" y="43" width="9" height="14" rx="3" fill="#B4BAC2" stroke="#8A929E" stroke-width="1"/>
+    <text x="66" y="55" font-family="monospace" font-size="16" font-weight="700" fill="#141619">+</text>
+    <text x="20" y="55" font-family="monospace" font-size="16" font-weight="700" fill="#fff">–</text>
+  </svg>`,
+  fonte:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="41" y="14" width="5" height="16" rx="2.5" fill="#9AA1AB"/>
+    <rect x="54" y="14" width="5" height="16" rx="2.5" fill="#9AA1AB"/>
+    <rect x="26" y="28" width="48" height="48" rx="12" fill="#262B33" stroke="#3A3F47" stroke-width="2"/>
+    <rect x="38" y="66" width="24" height="8" rx="2" fill="#0C0E10"/>
+    <rect x="41" y="68.5" width="18" height="3" rx="1" fill="#4FB0E0"/>
+  </svg>`,
+  fio:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 66 Q34 30 54 52 T80 46" stroke="#4FB0E0" stroke-width="11" fill="none" stroke-linecap="round"/>
+    <path d="M76 47 l13 -7" stroke="#C87F3A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M78 51 l13 -5" stroke="#D89552" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M77 44 l12 -8" stroke="#B86E2E" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  </svg>`,
+  fusivel:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="24" y="41" width="52" height="18" rx="5" fill="#B9C7A6" fill-opacity="0.45" stroke="#8A929E" stroke-width="1.5"/>
+    <rect x="16" y="38" width="12" height="24" rx="3" fill="#C2C8D0" stroke="#8A929E" stroke-width="1"/>
+    <rect x="72" y="38" width="12" height="24" rx="3" fill="#C2C8D0" stroke="#8A929E" stroke-width="1"/>
+    <path d="M28 50 l9 -5 l9 10 l9 -10 l9 5" stroke="#3A3F47" stroke-width="1.8" fill="none"/>
+  </svg>`,
+  resistor:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <line x1="10" y1="50" x2="32" y2="50" stroke="#B4BAC2" stroke-width="3"/>
+    <line x1="68" y1="50" x2="90" y2="50" stroke="#B4BAC2" stroke-width="3"/>
+    <rect x="30" y="37" width="40" height="26" rx="13" fill="#D9B38C" stroke="#B8956A" stroke-width="1.5"/>
+    <rect x="38" y="37" width="4.5" height="26" fill="#6B3F22"/>
+    <rect x="46" y="37" width="4.5" height="26" fill="#141619"/>
+    <rect x="54" y="37" width="4.5" height="26" fill="#E5443B"/>
+    <rect x="62" y="37" width="4.5" height="26" fill="#F5C518"/>
+  </svg>`,
+  led:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M37 48 a13 13 0 0 1 26 0 v8 h-26 z" fill="#E5443B" fill-opacity="0.9"/>
+    <rect x="37" y="55" width="26" height="8" fill="#E5443B" fill-opacity="0.75"/>
+    <rect x="33" y="61" width="34" height="5" rx="2" fill="#B33">
+    </rect>
+    <line x1="44" y1="66" x2="44" y2="82" stroke="#B4BAC2" stroke-width="3.5"/>
+    <line x1="56" y1="66" x2="56" y2="90" stroke="#B4BAC2" stroke-width="3.5"/>
+  </svg>`,
+  lampada:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 16 a21 21 0 0 1 15 35 c-3 3 -5 6 -5 10 h-20 c0 -4 -2 -7 -5 -10 a21 21 0 0 1 15 -35 z"
+          fill="#F5C518" fill-opacity="0.9" stroke="#C99C00" stroke-width="1.5"/>
+    <path d="M43 46 l3 -9 l4 9 l4 -9 l3 9" stroke="#B77F00" stroke-width="1.8" fill="none"/>
+    <rect x="41" y="63" width="18" height="5" rx="1" fill="#C2C8D0"/>
+    <rect x="42" y="68" width="16" height="4" fill="#9AA1AB"/>
+    <path d="M44 72 h12 l-2.5 5 h-7 z" fill="#8A929E"/>
+  </svg>`,
+  /* --- variantes de tomada --- */
+  tomada_antiga:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="16" y="16" width="68" height="68" rx="16" fill="#E8EAED" stroke="#AEB4BD" stroke-width="2"/>
+    <circle cx="50" cy="50" r="25" fill="#F4F5F7" stroke="#CBD0D8" stroke-width="1.5"/>
+    <rect x="35" y="43" width="6" height="14" rx="2.5" fill="#141619"/>
+    <rect x="59" y="43" width="6" height="14" rx="2.5" fill="#141619"/>
+  </svg>`,
+  tomada_ind:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="33" fill="#2F6FB0" stroke="#24567F" stroke-width="2"/>
+    <rect x="46" y="14" width="8" height="12" rx="2" fill="#24567F"/>
+    <circle cx="50" cy="50" r="24" fill="#E8EAED" stroke="#CBD0D8" stroke-width="1.5"/>
+    <circle cx="50" cy="37" r="4.5" fill="#141619"/>
+    <circle cx="37" cy="57" r="4.5" fill="#141619"/>
+    <circle cx="63" cy="57" r="4.5" fill="#141619"/>
+    <circle cx="50" cy="60" r="3.5" fill="#141619"/>
+  </svg>`,
+  /* --- variantes de fus\u00edvel --- */
+  fus_auto:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="32" y="24" width="36" height="40" rx="7" fill="#E5443B" fill-opacity="0.85" stroke="#B3352E" stroke-width="1.5"/>
+    <rect x="42" y="30" width="16" height="22" rx="2" fill="#141619" fill-opacity="0.18"/>
+    <path d="M46 34 v14 h8 v-14" stroke="#B77F00" stroke-width="2.2" fill="none"/>
+    <rect x="40" y="62" width="6" height="18" rx="1" fill="#B4BAC2"/>
+    <rect x="54" y="62" width="6" height="18" rx="1" fill="#B4BAC2"/>
+  </svg>`,
+  fus_rolha:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="34" y="26" width="32" height="38" rx="8" fill="#E8DCC0" stroke="#C9B98F" stroke-width="1.5"/>
+    <circle cx="50" cy="26" r="10" fill="#C2C8D0" stroke="#9AA1AB" stroke-width="1"/>
+    <circle cx="50" cy="26" r="4.5" fill="#E5443B"/>
+    <rect x="40" y="64" width="20" height="7" rx="1" fill="#B4BAC2"/>
+    <rect x="42" y="71" width="16" height="5" fill="#9AA1AB"/>
+    <path d="M45 76 h10 l-2 5 h-6 z" fill="#8A929E"/>
+  </svg>`,
+  fus_nh:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="30" y="37" width="40" height="26" rx="3" fill="#E8DCC0" stroke="#C9B98F" stroke-width="1.5"/>
+    <rect x="19" y="32" width="13" height="36" rx="2" fill="#C2C8D0" stroke="#9AA1AB" stroke-width="1"/>
+    <rect x="68" y="32" width="13" height="36" rx="2" fill="#C2C8D0" stroke="#9AA1AB" stroke-width="1"/>
+    <circle cx="50" cy="50" r="6" fill="#141619" fill-opacity="0.25"/>
+  </svg>`,
+  /* --- variantes de LED (com + e \u2212) --- */
+  led_5mm:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M37 46 a13 13 0 0 1 26 0 v8 h-26 z" fill="#E5443B" fill-opacity="0.9"/>
+    <rect x="37" y="52" width="26" height="8" fill="#E5443B" fill-opacity="0.75"/>
+    <rect x="33" y="61" width="34" height="5" rx="2" fill="#B3352E"/>
+    <line x1="56" y1="66" x2="56" y2="92" stroke="#B4BAC2" stroke-width="3.5"/>
+    <line x1="44" y1="66" x2="44" y2="79" stroke="#B4BAC2" stroke-width="3.5"/>
+    <text x="59" y="90" font-family="monospace" font-size="13" font-weight="700" fill="#4FBF7B">+</text>
+    <text x="34" y="77" font-family="monospace" font-size="14" font-weight="700" fill="#E5443B">\u2013</text>
+  </svg>`,
+  led_3mm:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M41 51 a9 9 0 0 1 18 0 v6 h-18 z" fill="#4FB0E0" fill-opacity="0.9"/>
+    <rect x="41" y="56" width="18" height="6" fill="#4FB0E0" fill-opacity="0.75"/>
+    <rect x="38" y="62" width="24" height="4" rx="2" fill="#3A8DB8"/>
+    <line x1="55" y1="66" x2="55" y2="88" stroke="#B4BAC2" stroke-width="3"/>
+    <line x1="45" y1="66" x2="45" y2="77" stroke="#B4BAC2" stroke-width="3"/>
+    <text x="58" y="86" font-family="monospace" font-size="12" font-weight="700" fill="#4FBF7B">+</text>
+    <text x="36" y="75" font-family="monospace" font-size="13" font-weight="700" fill="#E5443B">\u2013</text>
+  </svg>`,
+  led_rgb_fita:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="12" y="38" width="76" height="24" rx="3" fill="#E8DCC0" stroke="#C9B98F" stroke-width="1.5"/>
+    <rect x="42" y="42" width="16" height="16" rx="2" fill="#FDFDFD" stroke="#B4BAC2" stroke-width="1"/>
+    <rect x="44" y="44" width="4" height="12" fill="#E5443B"/>
+    <rect x="48" y="44" width="4" height="12" fill="#4FBF7B"/>
+    <rect x="52" y="44" width="4" height="12" fill="#4FB0E0"/>
+    <circle cx="22" cy="50" r="5" fill="#C2C8D0" stroke="#9AA1AB" stroke-width="1"/>
+    <circle cx="78" cy="50" r="5" fill="#C2C8D0" stroke="#9AA1AB" stroke-width="1"/>
+    <text x="18" y="74" font-family="monospace" font-size="11" font-weight="700" fill="#4FBF7B">+</text>
+    <text x="66" y="74" font-family="monospace" font-size="10" font-weight="700" fill="#8A929E">R G B</text>
+  </svg>`,
+  /* --- variantes de resist\u00eancia --- */
+  res_cafeteira:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M57 26 A26 26 0 1 1 43 26" fill="none" stroke="#9AA1AB" stroke-width="8" stroke-linecap="round"/>
+    <path d="M57 26 A26 26 0 1 1 43 26" fill="none" stroke="#D89552" stroke-width="2.5" stroke-linecap="round"/>
+    <rect x="45" y="15" width="4.5" height="13" rx="1" fill="#B4BAC2"/>
+    <rect x="51" y="15" width="4.5" height="13" rx="1" fill="#B4BAC2"/>
+  </svg>`,
+  res_forno:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 44 C18 33 36 33 36 44 C36 55 54 55 54 44 C54 33 72 33 72 44 C72 55 82 55 82 47" fill="none" stroke="#9AA1AB" stroke-width="8" stroke-linecap="round"/>
+    <path d="M18 44 C18 33 36 33 36 44 C36 55 54 55 54 44 C54 33 72 33 72 44 C72 55 82 55 82 47" fill="none" stroke="#D89552" stroke-width="2.5" stroke-linecap="round"/>
+    <rect x="13" y="44" width="6" height="15" rx="1" fill="#B4BAC2"/>
+    <rect x="81" y="47" width="6" height="15" rx="1" fill="#B4BAC2"/>
+  </svg>`,
+  /* --- variantes de l\u00e2mpada automotiva (com filamento) --- */
+  lamp_auto_g:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 14 a20 20 0 0 1 14 34 l-2 12 h-24 l-2 -12 a20 20 0 0 1 14 -34 z" fill="#B9C7A6" fill-opacity="0.35" stroke="#8A929E" stroke-width="1.5"/>
+    <path d="M43 44 l3 -10 l4 10 l4 -10 l3 10" stroke="#C99C00" stroke-width="1.8" fill="none"/>
+    <rect x="40" y="60" width="20" height="14" rx="1" fill="#B4BAC2" stroke="#9AA1AB" stroke-width="1"/>
+    <rect x="36" y="64" width="4" height="4" fill="#9AA1AB"/>
+    <rect x="60" y="64" width="4" height="4" fill="#9AA1AB"/>
+    <circle cx="45" cy="79" r="3" fill="#F5C518"/>
+    <circle cx="55" cy="79" r="3" fill="#F5C518"/>
+  </svg>`,
+  lamp_auto_p:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="40" y="20" width="20" height="34" rx="10" fill="#B9C7A6" fill-opacity="0.35" stroke="#8A929E" stroke-width="1.5"/>
+    <path d="M45 40 l5 -8 l5 8" stroke="#C99C00" stroke-width="1.6" fill="none"/>
+    <path d="M42 54 h16 l-3 20 h-10 z" fill="#C2C8D0" fill-opacity="0.5" stroke="#9AA1AB" stroke-width="1.2"/>
+    <path d="M47 74 v-16" stroke="#F5C518" stroke-width="2.2" fill="none"/>
+    <path d="M53 74 v-16" stroke="#F5C518" stroke-width="2.2" fill="none"/>
+  </svg>`,
+  /* --- variantes de pilha/bateria --- */
+  bat_9v:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="34" y="24" width="32" height="54" rx="5" fill="#1E2229" stroke="#3A3F47" stroke-width="2"/>
+    <rect x="34" y="24" width="32" height="16" rx="5" fill="#F5C518"/>
+    <circle cx="44" cy="20" r="4.5" fill="#C2C8D0" stroke="#9AA1AB" stroke-width="1"/>
+    <circle cx="56" cy="20" r="3.5" fill="#C2C8D0" stroke="#9AA1AB" stroke-width="1"/>
+    <text x="41" y="60" font-family="monospace" font-size="13" font-weight="700" fill="#E8EAED">9V</text>
+  </svg>`,
+  bat_botao:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="30" fill="#D4D9DF" stroke="#9AA1AB" stroke-width="2"/>
+    <circle cx="50" cy="50" r="21" fill="#EDEFF2" stroke="#CBD0D8" stroke-width="1.5"/>
+    <text x="44" y="49" font-family="monospace" font-size="17" font-weight="700" fill="#8A929E">+</text>
+    <text x="35" y="66" font-family="monospace" font-size="9" fill="#8A929E">CR2032</text>
+  </svg>`,
+  bat_carro:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="18" y="36" width="64" height="46" rx="5" fill="#1E2229" stroke="#3A3F47" stroke-width="2"/>
+    <rect x="18" y="36" width="64" height="9" rx="5" fill="#333A44"/>
+    <rect x="30" y="49" width="40" height="7" rx="2" fill="#262B33"/>
+    <rect x="30" y="59" width="40" height="7" rx="2" fill="#262B33"/>
+    <rect x="28" y="27" width="11" height="11" rx="2" fill="#E5443B"/>
+    <rect x="61" y="27" width="11" height="11" rx="2" fill="#8A929E"/>
+    <text x="30" y="25" font-family="monospace" font-size="11" font-weight="700" fill="#E5443B">+</text>
+    <text x="63" y="25" font-family="monospace" font-size="12" font-weight="700" fill="#8A929E">\u2013</text>
+  </svg>`,
+  /* --- variantes de fonte --- */
+  fonte_note:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="20" y="36" width="42" height="28" rx="5" fill="#262B33" stroke="#3A3F47" stroke-width="2"/>
+    <path d="M62 50 h12 v-14" fill="none" stroke="#141619" stroke-width="4"/>
+    <rect x="68" y="24" width="12" height="9" rx="2" fill="#B4BAC2" stroke="#9AA1AB" stroke-width="1"/>
+    <rect x="72" y="18" width="4" height="7" rx="1" fill="#9AA1AB"/>
+    <text x="27" y="54" font-family="monospace" font-size="9" font-weight="700" fill="#8A929E">19V</text>
+  </svg>`,
+  fonte_dc:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="32" y="28" width="34" height="30" rx="6" fill="#262B33" stroke="#3A3F47" stroke-width="2"/>
+    <rect x="43" y="16" width="4.5" height="13" rx="2" fill="#9AA1AB"/>
+    <rect x="52" y="16" width="4.5" height="13" rx="2" fill="#9AA1AB"/>
+    <path d="M49 58 v10" stroke="#141619" stroke-width="4" fill="none"/>
+    <rect x="43" y="68" width="12" height="10" rx="2" fill="#B4BAC2" stroke="#9AA1AB" stroke-width="1"/>
+    <rect x="47" y="76" width="4" height="6" rx="1" fill="#4FB0E0"/>
+  </svg>`,
+  /* --- variantes de cabo/fio --- */
+  cabo_par:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14 42 Q50 22 86 42" fill="none" stroke="#4FB0E0" stroke-width="7" stroke-linecap="round"/>
+    <path d="M14 54 Q50 34 86 54" fill="none" stroke="#E5443B" stroke-width="7" stroke-linecap="round"/>
+    <path d="M80 42 l9 -4" stroke="#C87F3A" stroke-width="3" stroke-linecap="round"/>
+    <path d="M80 54 l9 -4" stroke="#C87F3A" stroke-width="3" stroke-linecap="round"/>
+  </svg>`,
+  cabo_conector:`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 62 Q30 40 50 40" fill="none" stroke="#141619" stroke-width="8" stroke-linecap="round"/>
+    <rect x="48" y="34" width="18" height="12" rx="3" fill="#262B33" stroke="#3A3F47" stroke-width="1.5"/>
+    <rect x="66" y="37" width="16" height="6" rx="3" fill="#C2C8D0" stroke="#9AA1AB" stroke-width="1"/>
+    <rect x="70" y="38.5" width="3" height="3" fill="#141619"/>
+  </svg>`
+};
+
+/* ============ dados ============ */
+const C = {yellow:'#F5C518', red:'#E5443B', blue:'#4FB0E0'};
+const ESCALAS = [
+  {id:'vdc', cor:C.blue, sigla:'V\u23DC', mostra:'V\u23DC 20', nome:'Tens\u00e3o cont\u00ednua (DC)',
+   dial:'V com uma linha reta e outra tracejada',
+   pra:'Medir pilhas, baterias, fontes, carregadores e eletr\u00f4nica de carro (12V).',
+   como:'Pr\u00e9-selecione um valor ACIMA do esperado. Ponta preta no COM, vermelha no V\u03a9mA. Encoste a vermelha no + e a preta no \u2212.',
+   faixas:'200m \u00b7 2 \u00b7 20 \u00b7 200 \u00b7 1000', perigo:false},
+  {id:'vac', cor:C.red, sigla:'V~', mostra:'V~ 750', nome:'Tens\u00e3o alternada (AC)',
+   dial:'V com o s\u00edmbolo de onda ~',
+   pra:'Medir tomada, rede el\u00e9trica (127V ou 220V) e transformadores.',
+   como:'Selecione a faixa acima da rede (use 750/600 para tomada). Sem polaridade: uma ponta em cada furo da tomada.',
+   faixas:'200 \u00b7 750', perigo:true},
+  {id:'ohm', cor:C.yellow, sigla:'\u03a9', mostra:'\u03a9 20k', nome:'Resist\u00eancia',
+   dial:'S\u00edmbolo \u03a9 (\u00f4mega)',
+   pra:'Medir resistores e conferir se um fio/enrolamento est\u00e1 partido.',
+   como:'SEMPRE com o circuito DESLIGADO e sem energia. Encoste uma ponta em cada terminal do componente.',
+   faixas:'200 \u00b7 2k \u00b7 20k \u00b7 200k \u00b7 2M', perigo:false},
+  {id:'cont', cor:C.yellow, sigla:'\u2022))', mostra:'\u2022)) ou \u03a9 200', nome:'Continuidade',
+   dial:'\u00cdcone de som/ondinha. Se o seu n\u00e3o tiver, use a menor escala de \u03a9 (200).',
+   pra:'Testar fios, fus\u00edveis, l\u00e2mpadas, chaves e trilhas: descobrir se est\u00e1 inteiro ou rompido.',
+   como:'SEMPRE com o circuito DESLIGADO e sem energia. Encoste uma ponta em cada extremidade. \u2022 COM BIP: apitou = inteiro; sil\u00eancio = rompido. \u2022 SEM BIP (ex.: DT-830B): use a escala \u03a9 200 \u2014 perto de 0 = inteiro; mostrando \u201c1\u201d (ou OL) = rompido.',
+   faixas:'Sem bip \u2192 use \u03a9 200', perigo:false},
+  {id:'adc', cor:C.blue, sigla:'A\u23DC', mostra:'A\u23DC 200m', nome:'Corrente cont\u00ednua (DC)',
+   dial:'A com linha reta e tracejada',
+   pra:'Medir quanto um circuito consome (em mA ou A).',
+   como:'\u00c9 medido EM S\u00c9RIE (o mult\u00edmetro entra no meio do circuito). Acima de 200mA, passe a ponta vermelha para o furo de 10A.',
+   faixas:'200\u00b5 \u00b7 2m \u00b7 20m \u00b7 200m \u00b7 10A', perigo:false},
+  {id:'diodo', cor:C.blue, sigla:'\u25B6|', mostra:'\u25B6| 0.6', nome:'Teste de diodo',
+   dial:'S\u00edmbolo de seta com barra \u25B6|',
+   pra:'Testar diodos e LEDs e descobrir o sentido certo (anodo/catodo).',
+   como:'Vermelha no anodo, preta no catodo: mostra ~0,6. Invertendo, d\u00e1 aberto (1 ou OL). O LED at\u00e9 acende fraquinho.',
+   faixas:'\u2014', perigo:false}
+];
+const getE = id => ESCALAS.find(e=>e.id===id);
+const ALVOS = [
+  {id:'tomada', nome:'Tomada / Rede', escala:'vac', dica:'127V ou 220V. Tens\u00e3o de rede \u00e9 perigosa \u2014 muita aten\u00e7\u00e3o com as pontas.',
+   variantes:[
+     {id:'res', nome:'Residencial (nova)', ilu:'tomada', nota:'Padr\u00e3o novo (NBR 14136), 2 pinos + terra. Pode ser 127V ou 220V \u2014 n\u00e3o d\u00e1 pra saber pela apar\u00eancia. Uma ponta em cada furo de fase.'},
+     {id:'antiga', nome:'Antiga (2 pinos)', ilu:'tomada_antiga', nota:'Padr\u00e3o velho, sem terra (2 pinos chatos ou redondos). Ainda 127V ou 220V. Uma ponta em cada furo.'},
+     {id:'ind', nome:'Industrial / Trif\u00e1sica', ilu:'tomada_ind', nota:'Plugue industrial (tipo Steck). Entre duas fases pode dar 220V ou 380V \u2014 por isso sempre a escala 750. Meça um par de furos por vez.'}
+   ]},
+  {id:'pilha', nome:'Pilha / Bateria', escala:'vdc', dica:'AA/AAA \u2248 1,5V \u00b7 Bateria 9V \u00b7 Bateria de carro 12V.',
+   variantes:[
+     {id:'aa', nome:'Pilha AA / AAA', ilu:'pilha', nota:'~1,5V nova (1,2V se recarreg\u00e1vel). Vermelha no + (topo com saliência), preta no \u2212 (base chata). Abaixo de ~1,2V j\u00e1 est\u00e1 fraca.'},
+     {id:'9v', nome:'Bateria 9V', ilu:'bat_9v', nota:'~9V nova. Nos dois bot\u00f5es do topo: vermelha no menor (+), preta no maior (\u2212). Abaixo de ~7V, trocar.'},
+     {id:'botao', nome:'Bateria bot\u00e3o', ilu:'bat_botao', nota:'Moeda tipo CR2032 \u2248 3V. O lado liso maior \u00e9 o + (vermelha); o lado com borda \u00e9 o \u2212 (preta).'},
+     {id:'carro', nome:'Bateria de carro', ilu:'bat_carro', nota:'~12,6V parada e cheia; 12,4V ou menos = precisa carregar. Vermelha no poste + (vermelho), preta no \u2212. Ligado, com o motor, sobe pra ~13,8\u201314,4V.'}
+   ]},
+  {id:'fonte', nome:'Carregador / Fonte', escala:'vdc', dica:'Me\u00e7a a sa\u00edda (a etiqueta diz, ex.: 5V, 12V). Respeite + e \u2212.',
+   variantes:[
+     {id:'usb', nome:'Carregador USB', ilu:'fonte', nota:'Sa\u00edda ~5V (a etiqueta confirma). Meça na ponta do cabo: vermelha no + (centro/VBUS), preta no \u2212 (GND).'},
+     {id:'note', nome:'Fonte de notebook', ilu:'fonte_note', nota:'Sa\u00edda alta \u2014 a etiqueta diz (geralmente 19V ou 20V). No plugue: vermelha no pino central (+), preta na parte externa (\u2212).'},
+     {id:'dc', nome:'Fonte / plug DC', ilu:'fonte_dc', nota:'Sa\u00edda de 5V a 12V (a etiqueta diz). Quase sempre centro = + e externo = \u2212 \u2014 confira o s\u00edmbolo de polaridade na etiqueta.'}
+   ]},
+  {id:'fio', nome:'Cabo / Fio', escala:'cont', dica:'Sempre desenergizado. Sem bip no seu mult\u00edmetro? Use \u03a9 200: perto de 0 = inteiro; \u201c1\u201d/OL = rompido.',
+   variantes:[
+     {id:'simples', nome:'Fio simples', ilu:'fio', nota:'Um condutor. Desenergizado, uma ponta em cada extremidade: perto de 0 = inteiro; OL = rompido por dentro.'},
+     {id:'paralelo', nome:'Cabo paralelo', ilu:'cabo_par', nota:'V\u00e1rios condutores. Teste UMA veia por vez (a mesma nas duas pontas). Perto de 0 = aquele fio est\u00e1 inteiro.'},
+     {id:'conector', nome:'Cabo com conector', ilu:'cabo_conector', nota:'Pra descobrir qual pino liga em qual ponta: encoste uma ponta fixa e v\u00e1 testando as extremidades at\u00e9 achar o par que d\u00e1 continuidade (perto de 0).'}
+   ]},
+  {id:'fusivel', nome:'Fus\u00edvel', escala:'cont', dica:'Apitou = bom; sil\u00eancio = queimado. Sem bip? Use \u03a9 200: perto de 0 = bom; \u201c1\u201d/OL = queimado.',
+   variantes:[
+     {id:'vidro', nome:'Vidro (cartucho)', ilu:'fusivel', nota:'Comum em aparelhos e eletr\u00f4nicos. D\u00e1 pra ver o filamento por dentro: partido = queimado.'},
+     {id:'auto', nome:'Automotivo (l\u00e2mina)', ilu:'fus_auto', nota:'Do carro/moto. A cor indica a corrente (A). Encoste as pontas nas duas l\u00e2minas de cima.'},
+     {id:'rolha', nome:'Rolha / Diazed', ilu:'fus_rolha', nota:'Quadros residenciais antigos. A cor indica a amperagem. Teste com o quadro DESLIGADO.'},
+     {id:'nh', nome:'Faca / NH', ilu:'fus_nh', nota:'Pain\u00e9is industriais, correntes altas. Meça entre as duas facas met\u00e1licas, desenergizado.'}
+   ]},
+  {id:'resistor', nome:'Resistor', escala:'ohm', dica:'Confira o valor real e se n\u00e3o est\u00e1 aberto/queimado.',
+   variantes:[
+     {id:'comum', nome:'Resistor comum', ilu:'resistor', nota:'Resistor de faixas. Circuito desligado, uma ponta em cada terminal. Compare o valor lido com o c\u00f3digo de cores.'},
+     {id:'cafeteira', nome:'Resist\u00eancia de cafeteira', ilu:'res_cafeteira', nota:'\u00c9 uma resist\u00eancia BAIXA (dezenas de \u03a9). Use a faixa 200 \u03a9, desenergizada. Valor baixo = boa; \u201c1\u201d/OL = aberta (queimada).'},
+     {id:'forno', nome:'Resist\u00eancia de forno', ilu:'res_forno', nota:'Tamb\u00e9m resist\u00eancia baixa (poucas dezenas de \u03a9). Faixa 200 \u03a9, sem energia. Valor baixo = boa; OL = rompida.'}
+   ]},
+  {id:'led', nome:'LED / Diodo', escala:'diodo', dica:'Testa se est\u00e1 bom e mostra o lado certo de ligar.',
+   variantes:[
+     {id:'led5', nome:'LED 5mm', ilu:'led_5mm', nota:'A perna LONGA \u00e9 o + (anodo); a CURTA, do lado chato, \u00e9 o \u2212 (catodo). No teste de diodo: vermelha no +, preta no \u2212 \u2192 mostra um valor e acende fraquinho. Invertido = OL (aberto).'},
+     {id:'led3', nome:'LED 3mm', ilu:'led_3mm', nota:'Igual ao 5mm, s\u00f3 menor. Perna longa = + (anodo); curta / lado chato = \u2212 (catodo). Vermelha no +, preta no \u2212.'},
+     {id:'rgb', nome:'Fita LED RGB', ilu:'led_rgb_fita', nota:'Tem os contatos +, R, G e B. O + \u00e9 o comum (anodo). No diodo: vermelha no +, preta em R, G ou B pra testar cada cor. Fita de 12V pode n\u00e3o acender no teste (tens\u00e3o baixa) \u2014 a\u00ed confira segmento por segmento.'}
+   ]},
+  {id:'lampada', nome:'L\u00e2mpada', escala:'cont', dica:'Desligada da energia. Sem bip? Use \u03a9 200: perto de 0 = filamento inteiro; \u201c1\u201d/OL = queimado.',
+   variantes:[
+     {id:'inc', nome:'Incandescente', ilu:'lampada', nota:'Tem filamento. Continuidade (ou \u03a9 200) entre os dois contatos da base: perto de 0 = filamento inteiro; OL = queimado.'},
+     {id:'auto_g', nome:'Automotiva (farol)', ilu:'lamp_auto_g', nota:'Filamento tamb\u00e9m. Meça entre o contato da ponta e os pinos/lateral da base: perto de 0 = boa; OL = queimada. Muitos far\u00f3is t\u00eam 2 filamentos (alto/baixo) \u2014 teste os dois.'},
+     {id:'auto_p', nome:'Automotiva (painel)', ilu:'lamp_auto_p', nota:'L\u00e2mpada pequena de painel/lanterna, com filamento. Meça entre os dois fios/contatos: perto de 0 = boa; OL = queimada.'}
+   ]}
+];
+const getA = id => ALVOS.find(a=>a.id===id);
+const METERS = [
+  {id:'830b', nome:'DT-830B', tipo:'Digital', nota:'O mais barato de todos', cor:C.yellow,
+   tem:['vdc','vac','ohm','adc','diodo'], falta:'N\u00e3o tem bip. Para continuidade, use a escala \u03a9 200 (perto de 0 = inteiro; \u201c1\u201d = rompido).',
+   verif:true,
+   dial:{ pos:[
+     {t:'OFF',a:0,g:'off'},
+     {t:'750',a:30,g:'ac'},{t:'200',a:55,g:'ac'},
+     {t:'200\u00b5',a:78,g:'dca'},{t:'2000\u00b5',a:98,g:'dca'},{t:'20m',a:118,g:'dca'},{t:'200m',a:138,g:'dca'},
+     {t:'10A',a:160,g:'dca'},{t:'hFE',a:180,g:'off'},{t:'\u25B6|',a:198,g:'dio'},
+     {t:'200',a:214,g:'ohm'},{t:'2000',a:228,g:'ohm'},{t:'20k',a:242,g:'ohm'},{t:'200k',a:256,g:'ohm'},{t:'2000k',a:270,g:'ohm'},
+     {t:'200m',a:288,g:'dc'},{t:'2000m',a:302,g:'dc'},{t:'20',a:318,g:'dc'},{t:'200',a:332,g:'dc'},{t:'1000',a:346,g:'dc'}
+   ], map:{ vdc:318, vac:30, ohm:242, cont:214, adc:138, diodo:198 } }},
+  {id:'830d', nome:'DT-830D / DT-832', tipo:'Digital', nota:'Barato, com bip', cor:C.yellow,
+   tem:['vdc','vac','ohm','cont','adc','diodo'], falta:'Tem todo o b\u00e1sico presente.',
+   dial:{ pos:[
+     {t:'OFF',a:0,g:'off'},
+     {t:'750',a:30,g:'ac'},{t:'200',a:55,g:'ac'},
+     {t:'200\u00b5',a:78,g:'dca'},{t:'2000\u00b5',a:98,g:'dca'},{t:'20m',a:118,g:'dca'},{t:'200m',a:138,g:'dca'},
+     {t:'10A',a:160,g:'dca'},{t:'hFE',a:178,g:'off'},{t:'\u2022))',a:194,g:'ohm'},{t:'\u25B6|',a:206,g:'dio'},
+     {t:'200',a:220,g:'ohm'},{t:'2000',a:232,g:'ohm'},{t:'20k',a:244,g:'ohm'},{t:'200k',a:256,g:'ohm'},{t:'2000k',a:268,g:'ohm'},
+     {t:'200m',a:288,g:'dc'},{t:'2000m',a:302,g:'dc'},{t:'20',a:318,g:'dc'},{t:'200',a:332,g:'dc'},{t:'1000',a:346,g:'dc'}
+   ], map:{ vdc:318, vac:30, ohm:244, cont:194, adc:138, diodo:206 } }},
+  {id:'9205', nome:'DT-9205A', tipo:'Digital', nota:'Mais completo', cor:'#3A3F47',
+   tem:['vdc','vac','ohm','cont','adc','diodo'], falta:'Ainda tem capacit\u00e2ncia e teste de transistor (hFE).',
+   dial:{ pos:[
+     {t:'OFF',a:0,g:'off'},
+     {t:'750',a:32,g:'ac'},{t:'200',a:58,g:'ac'},
+     {t:'200\u00b5',a:82,g:'dca'},{t:'2m',a:100,g:'dca'},{t:'20m',a:118,g:'dca'},{t:'200m',a:136,g:'dca'},{t:'20A',a:158,g:'dca'},
+     {t:'\u2022))',a:180,g:'ohm'},{t:'\u25B6|',a:196,g:'dio'},
+     {t:'200',a:212,g:'ohm'},{t:'2k',a:226,g:'ohm'},{t:'20k',a:240,g:'ohm'},{t:'200k',a:254,g:'ohm'},{t:'2M',a:268,g:'ohm'},
+     {t:'200m',a:288,g:'dc'},{t:'2',a:304,g:'dc'},{t:'20',a:318,g:'dc'},{t:'200',a:332,g:'dc'},{t:'1000',a:346,g:'dc'}
+   ], map:{ vdc:318, vac:32, ohm:240, cont:180, adc:136, diodo:196 } }},
+  {id:'analog', nome:'Anal\u00f3gico (agulha)', tipo:'Anal\u00f3gico', nota:'Ex.: Minipa ET-1002', cor:'#3A3F47',
+   tem:['vdc','vac','ohm','adc'], falta:'Leitura na agulha; zere o \u03a9 antes de medir.',
+   dial:{ pos:[
+     {t:'OFF',a:0,g:'off'},
+     {t:'1000',a:30,g:'dc'},{t:'250',a:50,g:'dc'},{t:'50',a:70,g:'dc'},{t:'10',a:88,g:'dc'},{t:'2.5',a:106,g:'dc'},{t:'0.5',a:124,g:'dc'},{t:'0.1',a:140,g:'dc'},
+     {t:'250m',a:160,g:'dca'},{t:'25m',a:176,g:'dca'},{t:'2.5m',a:192,g:'dca'},{t:'50\u00b5',a:206,g:'dca'},
+     {t:'\u00d71k',a:224,g:'ohm'},{t:'\u00d7100',a:238,g:'ohm'},{t:'\u00d710',a:252,g:'ohm'},{t:'\u00d71',a:266,g:'ohm'},
+     {t:'1000',a:300,g:'ac'},{t:'250',a:318,g:'ac'},{t:'50',a:334,g:'ac'},{t:'10',a:348,g:'ac'}
+   ], map:{ vdc:70, vac:318, ohm:252, adc:160 } }}
+];
+
+/* ============ estado ============ */
+let state = {tab:'testar', alvo:null, variante:null, meter:null, escala:null};
+
+/* ============ componentes ============ */
+function meterImg(cor){
+  return '<div class="mimg" style="background:'+cor+'"><div class="disp"></div>'+
+    '<div class="dial"><div class="needle" style="background:'+cor+'"></div></div></div>';
+}
+function bloco(l,t){return '<div class="bloco"><div class="blabel mono">'+l+'</div><div class="btext">'+t+'</div></div>';}
+function resultado(e, ctx){
+  return '<div class="res"><div class="rhead"><div class="badge mono" style="background:'+e.cor+'">'+e.sigla+'</div>'+
+    '<div><div class="rname">'+e.nome+'</div><div class="rdial">Posi\u00e7\u00e3o no seletor: '+e.dial+'</div></div></div>'+
+    '<div class="lcd"><div class="val mono">'+e.mostra+'</div></div>'+
+    (ctx?'<div class="ctx">'+icon('info',16,e.cor)+'<span>'+ctx+'</span></div>':'')+
+    bloco('PARA QUE SERVE', e.pra)+bloco('COMO USAR', e.como)+
+    (e.faixas!=='\u2014'?bloco('FAIXAS T\u00cdPICAS', e.faixas):'')+
+    (e.perigo?'<div class="warn"><div class="warnhead">'+icon('alert',14)+' ALTA TENS\u00c3O \u2014 CUIDADO</div>'+
+      '<div class="warntext">Nunca toque nas partes met\u00e1licas das pontas. Confirme que o mult\u00edmetro est\u00e1 em tens\u00e3o AC (V~) e numa faixa alta antes de encostar. Na d\u00favida, chame um eletricista.</div></div>':'')+
+  '</div>';
+}
+/* ============ desenho do mostrador (chave seletora) ============ */
+function dialSVG(dial, escalaId){
+  const tA = dial.map[escalaId];
+  if(tA===undefined) return '';
+  const cx=150, cy=150, R=113, tickR=128, knobR=56;
+  const GRP={off:'#8A929E',dc:'#4FB0E0',ac:'#E5443B',ohm:'#F5C518',dca:'#4FB0E0',dio:'#4FB0E0'};
+  const rad=d=>d*Math.PI/180;
+  const tp=dial.pos.find(p=>p.a===tA)||{g:'off',t:''};
+  const tcol=GRP[tp.g]||'#8A929E';
+  let els='<circle cx="150" cy="150" r="138" fill="#181B20" stroke="#333A44" stroke-width="2"/>';
+  dial.pos.forEach(p=>{
+    const a=rad(p.a);
+    const lx=cx+R*Math.sin(a), ly=cy-R*Math.cos(a);
+    const tx=cx+tickR*Math.sin(a), ty=cy-tickR*Math.cos(a);
+    const col=GRP[p.g]||'#8A929E', isT=(p.a===tA);
+    els+='<circle cx="'+tx.toFixed(1)+'" cy="'+ty.toFixed(1)+'" r="'+(isT?3.6:2.1)+'" fill="'+col+'"/>';
+    if(isT){
+      els+='<rect x="'+(lx-19).toFixed(1)+'" y="'+(ly-10).toFixed(1)+'" width="38" height="20" rx="10" fill="'+col+'"/>'+
+        '<text x="'+lx.toFixed(1)+'" y="'+(ly+4.5).toFixed(1)+'" text-anchor="middle" font-family="monospace" font-size="12" font-weight="700" fill="#141619">'+p.t+'</text>';
+    }else{
+      els+='<text x="'+lx.toFixed(1)+'" y="'+(ly+3.5).toFixed(1)+'" text-anchor="middle" font-family="monospace" font-size="10" fill="'+col+'">'+p.t+'</text>';
+    }
+  });
+  els+='<g transform="rotate('+tA+' 150 150)">'+
+    '<circle cx="150" cy="150" r="'+knobR+'" fill="#F3A81C" stroke="#C98A00" stroke-width="2"/>'+
+    '<rect x="145" y="'+(150-knobR+4)+'" width="10" height="'+(knobR-2)+'" rx="5" fill="#C98A00"/>'+
+    '<path d="M150 '+(150-knobR-6)+' l-7 10 h14 z" fill="'+tcol+'" stroke="#141619" stroke-width="1"/>'+
+  '</g>';
+  return '<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">'+els+'</svg>';
+}
+function dialBlock(m, escalaId){
+  if(!m.dial) return '';
+  const svg=dialSVG(m.dial, escalaId);
+  if(!svg) return '';
+  const cap=m.verif ? 'DEIXE A CHAVE ASSIM' : 'DEIXE A CHAVE ASSIM \u00b7 layout aproximado';
+  return '<div class="dialwrap"><div class="blabel mono">'+cap+'</div>'+
+    '<div class="dialbox">'+svg+'</div></div>';
+}
+function gridAlvos(){
+  return '<div class="grid">'+ALVOS.map(a=>{
+    const col = a.escala==='vac'?C.red:C.yellow;
+    const bg  = a.escala==='vac'?'rgba(229,68,59,.15)':'rgba(245,197,24,.15)';
+    const e   = getE(a.escala);
+    return '<button class="card pick" data-act="alvo" data-id="'+a.id+'">'+
+      '<div class="ilu">'+ILU[a.id]+'</div>'+
+      '<span class="nm">'+a.nome+'</span>'+
+      '<span class="tag mono" style="background:'+bg+';color:'+col+'">'+e.sigla+'</span>'+
+    '</button>';
+  }).join('')+'</div>';
+}
+
+function gridVariantes(a){
+  return '<div class="grid">'+a.variantes.map(v=>{
+    const esc = v.escala || a.escala;
+    const e   = getE(esc);
+    const col = esc==='vac'?C.red:C.yellow;
+    const bg  = esc==='vac'?'rgba(229,68,59,.15)':'rgba(245,197,24,.15)';
+    return '<button class="card pick" data-act="variante" data-id="'+v.id+'">'+
+      '<div class="ilu">'+ILU[v.ilu]+'</div>'+
+      '<span class="nm">'+v.nome+'</span>'+
+      '<span class="tag mono" style="background:'+bg+';color:'+col+'">'+e.sigla+'</span>'+
+    '</button>';
+  }).join('')+'</div>';
+}
+
+/* ============ Tela Testar (escolha visual) ============ */
+function telaTestar(){
+  if(state.alvo){
+    const a = getA(state.alvo);
+    // 1) tem modelos e ainda n\u00e3o escolheu \u2192 sub-lista de modelos
+    if(a.variantes && !state.variante){
+      return '<button class="back" data-act="voltar">'+icon('arrow',16)+' Escolher outro</button>'+
+        '<div style="display:flex;align-items:center;gap:10px;margin:2px 0 2px">'+
+        '<div style="width:34px;height:34px;flex-shrink:0">'+ILU[a.id]+'</div>'+
+        '<div style="font-size:18px;font-weight:700">'+a.nome+'</div></div>'+
+        '<div class="lead" style="margin-bottom:14px">Qual \u00e9 o seu? Toque no modelo mais parecido.</div>'+
+        gridVariantes(a);
+    }
+    // 2) resolve escala + contexto (com ou sem variante)
+    let esc = a.escala, ctx = a.dica, nome = a.nome, iluKey = a.id, temVar = !!a.variantes;
+    if(a.variantes && state.variante){
+      const v = a.variantes.find(x=>x.id===state.variante);
+      esc = v.escala || a.escala; ctx = v.nota; nome = a.nome+' \u00b7 '+v.nome; iluKey = v.ilu;
+    }
+    const e = getE(esc);
+    const backAct = temVar ? 'voltarVar' : 'voltar';
+    const backTxt = temVar ? 'Ver modelos' : 'Escolher outro';
+    return '<button class="back" data-act="'+backAct+'">'+icon('arrow',16)+' '+backTxt+'</button>'+
+      '<div style="display:flex;align-items:center;gap:10px;margin:2px 0 14px">'+
+      '<div style="width:38px;height:38px;flex-shrink:0">'+ILU[iluKey]+'</div>'+
+      '<div style="font-size:16.5px;font-weight:700;line-height:1.25">'+nome+'</div></div>'+ resultado(e, ctx);
+  }
+  return '<div style="margin-bottom:14px"><div class="h1">O que voc\u00ea vai testar?</div>'+
+    '<div class="lead">Toque na figura parecida com o objeto. O app mostra a escala certa do mult\u00edmetro.</div></div>'+
+    gridAlvos();
+}
+
+/* ============ Tela Manual ============ */
+function telaManual(){
+  const items = ESCALAS.map(e=>{
+    const open = state.escala===e.id;
+    return '<div class="acc" style="'+(open?'border-color:'+e.cor:'')+'">'+
+      '<button class="accbtn" data-act="escala" data-id="'+e.id+'">'+
+        '<div class="badgeSm mono" style="background:'+e.cor+'">'+e.sigla+'</div>'+
+        '<div class="accmid"><div class="t">'+e.nome+'</div><div class="d">'+e.pra.slice(0,42)+'\u2026</div></div>'+
+        (e.perigo?icon('alert',16,C.red):'')+
+        '<span class="chev'+(open?' r':'')+'">'+icon('chev',18,'var(--mut)')+'</span></button>'+
+      (open?'<div class="accbody">'+resultado(e)+'</div>':'')+'</div>';
+  }).join('');
+  return '<div style="margin-bottom:14px"><div class="h1">Manual universal</div>'+
+    '<div class="lead">As escalas b\u00e1sicas que aparecem em qualquer mult\u00edmetro. Toque para abrir.</div></div>'+items;
+}
+
+/* ============ Tela Mult\u00edmetros ============ */
+function telaMeters(){
+  if(state.meter){
+    const m = METERS.find(x=>x.id===state.meter);
+    const escalas = m.tem.map(id=>{
+      const e = getE(id), open = state.escala===id;
+      return '<div class="acc" style="margin-bottom:8px;'+(open?'border-color:'+e.cor:'')+'">'+
+        '<button class="accbtn" data-act="escala" data-id="'+id+'" style="padding:12px">'+
+          '<div class="badgeSm mono" style="width:40px;height:40px;font-size:15px;background:'+e.cor+'">'+e.sigla+'</div>'+
+          '<div class="accmid"><div class="t" style="font-size:14px">'+e.nome+'</div></div>'+
+          (e.perigo?icon('alert',15,C.red):'')+
+          '<span class="chev'+(open?' r':'')+'">'+icon('chev',17,'var(--mut)')+'</span></button>'+
+        (open?'<div class="accbody">'+dialBlock(m,id)+resultado(e)+'</div>':'')+'</div>';
+    }).join('');
+    return '<button class="back" data-act="voltar">'+icon('arrow',16)+' Todos os modelos</button>'+
+      '<div style="display:flex;align-items:center;gap:12px;margin:4px 0 6px">'+meterImg(m.cor)+
+        '<div><div class="h1">'+m.nome+'</div><div class="ty" style="color:var(--mut);font-size:12px">'+m.tipo+' \u00b7 '+m.nota+'</div></div></div>'+
+      '<div class="infobar" style="margin:10px 0 4px">'+icon('info',15,C.yellow)+'<span>'+m.falta+'</span></div>'+
+      '<div class="seclabel mono">ESCALAS DESTE MODELO</div>'+escalas;
+  }
+  const list = METERS.map(m=>{
+    const sc = m.tem.map(t=>getE(t).sigla).join('  ');
+    return '<button class="card meter" data-act="meter" data-id="'+m.id+'">'+meterImg(m.cor)+
+      '<div class="minfo"><div class="n">'+m.nome+'</div><div class="ty">'+m.tipo+' \u00b7 '+m.nota+'</div>'+
+      '<div class="sc mono">'+sc+'</div></div>'+icon('chev',18,'var(--mut)')+'</button>';
+  }).join('');
+  return '<div style="margin-bottom:14px"><div class="h1">Mult\u00edmetros comuns</div>'+
+    '<div class="lead">Modelos mais baratos e populares. Toque para ver as escalas de cada um.</div></div>'+
+    '<div style="display:flex;flex-direction:column;gap:10px">'+list+'</div>';
+}
+
+/* ============ render ============ */
+function render(){
+  document.getElementById('ic-logo').innerHTML = icon('gauge',18,'#141619');
+  const main = document.getElementById('main');
+  if(state.tab==='testar') main.innerHTML = telaTestar();
+  else if(state.tab==='manual') main.innerHTML = telaManual();
+  else main.innerHTML = telaMeters();
+
+  const tabs = [{id:'testar',label:'Testar',ic:'grid'},{id:'manual',label:'Manual',ic:'book'},{id:'meters',label:'Mult\u00edmetros',ic:'gauge'}];
+  document.getElementById('nav').innerHTML = tabs.map(t=>{
+    const on = state.tab===t.id;
+    return '<button class="'+(on?'on':'')+'" data-act="tab" data-id="'+t.id+'">'+
+      icon(t.ic,20,on?'var(--yellow)':'var(--mut)')+'<span class="lbl mono">'+t.label+'</span></button>';
+  }).join('');
+}
+
+/* ============ eventos ============ */
+document.getElementById('app').addEventListener('click', ev=>{
+  const btn = ev.target.closest('[data-act]'); if(!btn) return;
+  const act = btn.dataset.act, id = btn.dataset.id;
+  if(act==='tab'){ state = {tab:id, alvo:null, variante:null, meter:null, escala:null}; }
+  else if(act==='alvo'){ state.alvo = id; state.variante = null; }
+  else if(act==='variante'){ state.variante = id; }
+  else if(act==='meter'){ state.meter = id; state.escala = null; }
+  else if(act==='escala'){ state.escala = (state.escala===id?null:id); }
+  else if(act==='voltarVar'){ state.variante = null; }
+  else if(act==='voltar'){ state.alvo=null; state.variante=null; state.meter=null; state.escala=null; }
+  render();
+  document.getElementById('main').scrollTop = 0;
+});
+
+render();
+</script>
+</body>
+</html>
